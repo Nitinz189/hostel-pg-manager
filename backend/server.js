@@ -6,6 +6,8 @@ import tenantRoutes from './routes/tenantRoutes.js'
 import paymentRoutes from './routes/paymentRoutes.js'
 import dashboardRoutes from './routes/dashboardRoutes.js'
 import ownerRoutes from './routes/ownerRoutes.js'
+import notificationRoutes from './routes/notificationRoutes.js'
+import { startCronJob } from './utils/cronJob.js'
 
 dotenv.config()
 
@@ -15,7 +17,10 @@ app.use(cors())
 app.use(express.json())
 
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB Connected Successfully'))
+  .then(() => {
+    console.log('MongoDB Connected Successfully')
+    startCronJob()
+  })
   .catch((err) => console.log('MongoDB Error:', err))
 
 app.get('/', (req, res) => {
@@ -26,6 +31,7 @@ app.use('/api/tenants', tenantRoutes)
 app.use('/api/payments', paymentRoutes)
 app.use('/api/dashboard', dashboardRoutes)
 app.use('/api/owner', ownerRoutes)
+app.use('/api/notifications', notificationRoutes)
 
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => {

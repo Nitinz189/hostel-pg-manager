@@ -1,11 +1,13 @@
-import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { useState } from 'react'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Dashboard from './pages/Dashboard'
 import Tenants from './pages/Tenants'
 import Payments from './pages/Payments'
 import Settings from './pages/Settings'
+import Notifications from './pages/Notifications'
 import { Toaster } from 'react-hot-toast'
 
 function ProtectedRoute({ children }) {
@@ -13,39 +15,102 @@ function ProtectedRoute({ children }) {
   return currentUser ? children : <Navigate to="/login" />
 }
 
-function Layout({ children }) {
+function Sidebar({ menuOpen, setMenuOpen }) {
   const { currentUser, logout } = useAuth()
+  const location = useLocation()
+
+  const links = [
+    { to: '/dashboard', icon: '📊', label: 'Dashboard' },
+    { to: '/tenants', icon: '👥', label: 'Tenants' },
+    { to: '/payments', icon: '💳', label: 'Payments' },
+    { to: '/notifications', icon: '🔔', label: 'Notifications' },
+    { to: '/settings', icon: '⚙️', label: 'Settings' },
+  ]
+
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <div className="w-56 bg-white border-r border-gray-100 fixed h-full flex flex-col">
+    <>
+      {/* Overlay */}
+      {menuOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-40 z-40 md:hidden"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`
+        fixed top-0 left-0 h-full w-60 bg-white border-r border-gray-100 z-50
+        flex flex-col transition-transform duration-300
+        ${menuOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:translate-x-0
+      `}>
+        {/* Logo */}
         <div className="p-5 border-b border-gray-100">
-          <h1 className="text-base font-semibold text-blue-600">🏠 PG Manager</h1>
-          <p className="text-xs text-gray-400 mt-0.5 truncate">{currentUser?.email}</p>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🏠</span>
+            <div>
+              <h1 className="text-sm font-semibold text-blue-600">PG Manager</h1>
+              <p className="text-xs text-gray-400 truncate max-w-36">{currentUser?.email}</p>
+            </div>
+          </div>
         </div>
-        <nav className="flex-1 p-4 space-y-1">
-          <Link to="/dashboard" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition">
-            📊 Dashboard
-          </Link>
-          <Link to="/tenants" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition">
-            👥 Tenants
-          </Link>
-          <Link to="/payments" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition">
-            💳 Payments
-          </Link>
-          <Link to="/settings" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition">
-            ⚙️ Settings
-          </Link>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          {links.map(link => (
+            <Link
+              key={link.to}
+              to={link.to}
+              onClick={() => setMenuOpen(false)}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                location.pathname === link.to
+                  ? 'bg-blue-50 text-blue-600'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+              }`}
+            >
+              <span className="text-base">{link.icon}</span>
+              {link.label}
+            </Link>
+          ))}
         </nav>
+
+        {/* Logout */}
         <div className="p-4 border-t border-gray-100">
           <button
             onClick={logout}
-            className="w-full text-sm text-red-500 hover:text-red-600 py-2 rounded-lg hover:bg-red-50 transition"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition"
           >
-            Logout
+            🚪 Logout
           </button>
         </div>
       </div>
-      <div className="ml-56 flex-1">
+    </>
+  )
+}
+
+function Layout({ children }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Top bar for mobile */}
+      <div className="md:hidden bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🏠</span>
+          <span className="text-sm font-semibold text-blue-600">PG Manager</span>
+        </div>
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="text-gray-600 text-xl p-1"
+        >
+          ☰
+        </button>
+      </div>
+
+      <Sidebar menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
+
+      {/* Main content */}
+      <div className="md:ml-60 min-h-screen">
         {children}
       </div>
     </div>
@@ -61,34 +126,11 @@ function App() {
           <Route path="/" element={<Navigate to="/login" />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <Layout>
-                <Dashboard />
-              </Layout>
-            </ProtectedRoute>
-          } />
-          <Route path="/tenants" element={
-  <ProtectedRoute>
-    <Layout>
-      <Tenants />
-    </Layout>
-  </ProtectedRoute>
-} />
-<Route path="/payments" element={
-  <ProtectedRoute>
-    <Layout>
-      <Payments />
-    </Layout>
-  </ProtectedRoute>
-} />
-<Route path="/settings" element={
-  <ProtectedRoute>
-    <Layout>
-      <Settings />
-    </Layout>
-  </ProtectedRoute>
-} />
+          <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+          <Route path="/tenants" element={<ProtectedRoute><Layout><Tenants /></Layout></ProtectedRoute>} />
+          <Route path="/payments" element={<ProtectedRoute><Layout><Payments /></Layout></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><Layout><Notifications /></Layout></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
