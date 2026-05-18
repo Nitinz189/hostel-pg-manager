@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
@@ -19,29 +19,43 @@ export default function Dashboard() {
   const [analytics, setAnalytics] = useState([])
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+
+  const fetchAll = useCallback(async () => {
+    if (!currentUser) return
+    setLoading(true)
+    setError(false)
+    try {
+      const [statsRes, analyticsRes, notifRes] = await Promise.all([
+        axios.get(`${API}/dashboard?ownerId=${currentUser.uid}`),
+        axios.get(`${API}/payments/analytics?ownerId=${currentUser.uid}`),
+        axios.get(`${API}/notifications?ownerId=${currentUser.uid}`)
+      ])
+      setStats(statsRes.data)
+      const chartData = Object.entries(analyticsRes.data).map(([month, amount]) => ({
+        month: month.split(' ')[0].substring(0, 3),
+        amount
+      }))
+      setAnalytics(chartData)
+      setNotifications(notifRes.data.filter(n => !n.isRead).slice(0, 3))
+    } catch (err) {
+      console.log('Dashboard error:', err)
+      setError(true)
+      setStats({
+        totalTenants: 0,
+        paidTenants: 0,
+        pendingTenants: 0,
+        overdueTenants: 0,
+        monthlyRevenue: 0,
+        upcomingDue: []
+      })
+    }
+    setLoading(false)
+  }, [currentUser])
 
   useEffect(() => {
-    async function fetchAll() {
-      try {
-        const [statsRes, analyticsRes, notifRes] = await Promise.all([
-          axios.get(`${API}/dashboard?ownerId=${currentUser.uid}`),
-          axios.get(`${API}/payments/analytics?ownerId=${currentUser.uid}`),
-          axios.get(`${API}/notifications?ownerId=${currentUser.uid}`)
-        ])
-        setStats(statsRes.data)
-        const chartData = Object.entries(analyticsRes.data).map(([month, amount]) => ({
-          month: month.split(' ')[0].substring(0, 3),
-          amount
-        }))
-        setAnalytics(chartData)
-        setNotifications(notifRes.data.filter(n => !n.isRead).slice(0, 3))
-      } catch (err) {
-        console.log(err)
-      }
-      setLoading(false)
-    }
-    if (currentUser) fetchAll()
-  }, [currentUser])
+    fetchAll()
+  }, [fetchAll])
 
   const cards = [
     { label: 'Total Tenants', value: stats.totalTenants, bg: 'bg-blue-50', text: 'text-blue-600', icon: '🏠', border: 'border-blue-100' },
@@ -54,12 +68,16 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="p-4 md:p-6">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+        <div className="mb-6">
+          <div className="h-7 bg-gray-100 rounded w-32 mb-2 animate-pulse"></div>
+          <div className="h-4 bg-gray-100 rounded w-48 animate-pulse"></div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
           {[1,2,3,4,5].map(i => (
-            <div key={i} className="bg-white rounded-2xl p-5 border border-gray-100 animate-pulse">
-              <div className="h-8 w-8 bg-gray-100 rounded-full mb-3"></div>
+            <div key={i} className="bg-white rounded-2xl p-4 border border-gray-100 animate-pulse">
+              <div className="h-6 w-6 bg-gray-100 rounded mb-3"></div>
               <div className="h-3 bg-gray-100 rounded w-3/4 mb-2"></div>
-              <div className="h-6 bg-gray-100 rounded w-1/2"></div>
+              <div className="h-5 bg-gray-100 rounded w-1/2"></div>
             </div>
           ))}
         </div>
@@ -69,13 +87,23 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 md:p-6">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-gray-800">Dashboard</h1>
-        <p className="text-gray-500 text-sm">Welcome back! Here is your overview.</p>
+        <p className="text-gray-500 text-sm">Welcome back, {currentUser?.email}</p>
       </div>
 
-      {/* Stat Cards */}
+      {error && (
+        <div className="bg-red-50 border border-red-100 rounded-xl p-4 mb-4 flex items-center justify-between">
+          <p className="text-sm text-red-600">⚠️ Failed to load data. Backend may be waking up (takes ~50 sec).</p>
+          <button
+            onClick={fetchAll}
+            className="text-xs bg-red-600 text-white px-3 py-1.5 rounded-lg hover:bg-red-700 transition ml-3 flex-shrink-0"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         {cards.map((card, i) => (
           <div key={i} className={`${card.bg} border ${card.border} rounded-2xl p-4`}>
@@ -87,12 +115,12 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Chart */}
         <div className="lg:col-span-2 bg-white border border-gray-100 rounded-2xl p-5">
           <h2 className="text-sm font-semibold text-gray-700 mb-4">Monthly Revenue</h2>
           {analytics.length === 0 ? (
-            <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
-              No payment data yet
+            <div className="flex items-center justify-center h-40 text-gray-400 text-sm flex-col gap-2">
+              <span className="text-3xl">📊</span>
+              <p>No payment data yet</p>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
@@ -107,7 +135,6 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Notifications */}
         <div className="bg-white border border-gray-100 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-gray-700">Recent Alerts</h2>
@@ -136,7 +163,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Pending Tenants */}
       <div className="mt-4 bg-white border border-gray-100 rounded-2xl p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-gray-700">Pending & Overdue Tenants</h2>
@@ -152,7 +178,7 @@ export default function Dashboard() {
             {stats.upcomingDue.map(tenant => (
               <div key={tenant._id} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center text-xs font-medium text-blue-600">
+                  <div className="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center text-xs font-semibold text-blue-600">
                     {tenant.name.charAt(0).toUpperCase()}
                   </div>
                   <div>

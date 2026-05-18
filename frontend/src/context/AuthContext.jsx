@@ -4,7 +4,9 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  setPersistence,
+  browserLocalPersistence
 } from 'firebase/auth'
 import { auth } from '../firebase'
 
@@ -18,11 +20,13 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  function signup(email, password) {
+  async function signup(email, password) {
+    await setPersistence(auth, browserLocalPersistence)
     return createUserWithEmailAndPassword(auth, email, password)
   }
 
-  function login(email, password) {
+  async function login(email, password) {
+    await setPersistence(auth, browserLocalPersistence)
     return signInWithEmailAndPassword(auth, email, password)
   }
 
@@ -35,11 +39,13 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user)
-      setLoading(false)
+    setPersistence(auth, browserLocalPersistence).then(() => {
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        setCurrentUser(user)
+        setLoading(false)
+      })
+      return unsubscribe
     })
-    return unsubscribe
   }, [])
 
   const value = {

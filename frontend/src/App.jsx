@@ -11,7 +11,15 @@ import Notifications from './pages/Notifications'
 import { Toaster } from 'react-hot-toast'
 
 function ProtectedRoute({ children }) {
-  const { currentUser } = useAuth()
+  const { currentUser, loading } = useAuth()
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+        <p className="text-sm text-gray-500">Loading...</p>
+      </div>
+    </div>
+  )
   return currentUser ? children : <Navigate to="/login" />
 }
 
@@ -29,22 +37,18 @@ function Sidebar({ menuOpen, setMenuOpen }) {
 
   return (
     <>
-      {/* Overlay */}
       {menuOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-40 z-40 md:hidden"
           onClick={() => setMenuOpen(false)}
         />
       )}
-
-      {/* Sidebar */}
       <div className={`
         fixed top-0 left-0 h-full w-60 bg-white border-r border-gray-100 z-50
         flex flex-col transition-transform duration-300
         ${menuOpen ? 'translate-x-0' : '-translate-x-full'}
         md:translate-x-0
       `}>
-        {/* Logo */}
         <div className="p-5 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <span className="text-2xl">🏠</span>
@@ -54,8 +58,6 @@ function Sidebar({ menuOpen, setMenuOpen }) {
             </div>
           </div>
         </div>
-
-        {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {links.map(link => (
             <Link
@@ -73,8 +75,6 @@ function Sidebar({ menuOpen, setMenuOpen }) {
             </Link>
           ))}
         </nav>
-
-        {/* Logout */}
         <div className="p-4 border-t border-gray-100">
           <button
             onClick={logout}
@@ -90,26 +90,18 @@ function Sidebar({ menuOpen, setMenuOpen }) {
 
 function Layout({ children }) {
   const [menuOpen, setMenuOpen] = useState(false)
-
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top bar for mobile */}
       <div className="md:hidden bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-2">
           <span className="text-xl">🏠</span>
           <span className="text-sm font-semibold text-blue-600">PG Manager</span>
         </div>
-        <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="text-gray-600 text-xl p-1"
-        >
+        <button onClick={() => setMenuOpen(!menuOpen)} className="text-gray-600 text-xl p-1">
           ☰
         </button>
       </div>
-
       <Sidebar menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
-
-      {/* Main content */}
       <div className="md:ml-60 min-h-screen">
         {children}
       </div>
