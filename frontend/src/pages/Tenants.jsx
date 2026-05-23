@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import axios from 'axios'
@@ -19,6 +20,7 @@ export default function Tenants() {
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(empty)
   const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
 
   async function fetchTenants() {
   setLoading(true)
@@ -207,6 +209,7 @@ export default function Tenants() {
                     <td className="px-4 py-3 flex gap-2">
                       <button onClick={() => openEdit(tenant)} className="text-blue-500 text-xs border border-blue-200 px-2 py-1 rounded-lg hover:bg-blue-50 transition">Edit</button>
                       <button onClick={() => handleDelete(tenant._id, tenant.name)} className="text-red-500 text-xs border border-red-200 px-2 py-1 rounded-lg hover:bg-red-50 transition">Delete</button>
+                      <button onClick={() => navigate(`/tenant/${tenant._id}`)} className="text-purple-500 text-xs border border-purple-200 px-2 py-1 rounded-lg hover:bg-purple-50 transition">View</button>
                     </td>
                   </tr>
                 ))}
@@ -241,6 +244,7 @@ export default function Tenants() {
                 <div className="flex gap-2">
                   <button onClick={() => openEdit(tenant)} className="flex-1 text-blue-600 text-xs border border-blue-200 py-1.5 rounded-lg hover:bg-blue-50 transition">Edit</button>
                   <button onClick={() => handleDelete(tenant._id, tenant.name)} className="flex-1 text-red-500 text-xs border border-red-200 py-1.5 rounded-lg hover:bg-red-50 transition">Delete</button>
+                  <button onClick={() => navigate(`/tenant/${tenant._id}`)} className="flex-1 text-purple-600 text-xs border border-purple-200 py-1.5 rounded-lg hover:bg-purple-50 transition">View Profile</button>
                 </div>
               </div>
             ))}

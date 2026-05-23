@@ -68,7 +68,7 @@ export default function Login() {
         </form>
 
         <div className="mt-4 text-center space-y-2">
-          <Link to="/reset-password" className="text-sm text-blue-600 hover:underline block">
+          <Link to="/forgot-password" className="text-sm text-blue-600 hover:underline block">
             Forgot password?
           </Link>
           <p className="text-sm text-gray-500">

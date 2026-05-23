@@ -8,6 +8,7 @@ import dashboardRoutes from './routes/dashboardRoutes.js'
 import ownerRoutes from './routes/ownerRoutes.js'
 import notificationRoutes from './routes/notificationRoutes.js'
 import { startCronJob } from './utils/cronJob.js'
+import adminRoutes from './routes/adminRoutes.js'
 
 dotenv.config()
 
@@ -59,6 +60,7 @@ app.use('/api/payments', paymentRoutes)
 app.use('/api/dashboard', dashboardRoutes)
 app.use('/api/owner', ownerRoutes)
 app.use('/api/notifications', notificationRoutes)
+app.use('/api/admin', adminRoutes)
 
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => {

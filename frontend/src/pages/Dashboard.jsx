@@ -106,7 +106,11 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         {cards.map((card, i) => (
-          <div key={i} className={`${card.bg} border ${card.border} rounded-2xl p-4`}>
+          <div
+            key={i}
+            className={`${card.bg} border ${card.border} rounded-2xl p-4 card-hover cursor-default animate-fadeInUp`}
+            style={{ animationDelay: `${i * 0.1}s`, opacity: 0 }}
+  >
             <div className="text-xl mb-2">{card.icon}</div>
             <p className="text-xs text-gray-500 mb-1">{card.label}</p>
             <p className={`text-xl font-semibold ${card.text}`}>{card.value}</p>

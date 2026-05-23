@@ -8,6 +8,9 @@ import Tenants from './pages/Tenants'
 import Payments from './pages/Payments'
 import Settings from './pages/Settings'
 import Notifications from './pages/Notifications'
+import ForgotPassword from './pages/ForgotPassword'
+import TenantProfile from './pages/TenantProfile'
+import AdminPanel from './pages/AdminPanel'
 import { Toaster } from 'react-hot-toast'
 
 function ProtectedRoute({ children }) {
@@ -27,13 +30,16 @@ function Sidebar({ menuOpen, setMenuOpen }) {
   const { currentUser, logout } = useAuth()
   const location = useLocation()
 
-  const links = [
-    { to: '/dashboard', icon: '📊', label: 'Dashboard' },
-    { to: '/tenants', icon: '👥', label: 'Tenants' },
-    { to: '/payments', icon: '💳', label: 'Payments' },
-    { to: '/notifications', icon: '🔔', label: 'Notifications' },
-    { to: '/settings', icon: '⚙️', label: 'Settings' },
-  ]
+  const isAdmin = currentUser?.email === 'vnitin398@gmail.com'
+
+const links = [
+  { to: '/dashboard', icon: '📊', label: 'Dashboard' },
+  { to: '/tenants', icon: '👥', label: 'Tenants' },
+  { to: '/payments', icon: '💳', label: 'Payments' },
+  { to: '/notifications', icon: '🔔', label: 'Notifications' },
+  { to: '/settings', icon: '⚙️', label: 'Settings' },
+  ...(isAdmin ? [{ to: '/admin', icon: '🛡️', label: 'Admin' }] : []),
+]
 
   return (
     <>
@@ -123,6 +129,11 @@ function App() {
           <Route path="/payments" element={<ProtectedRoute><Layout><Payments /></Layout></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute><Layout><Notifications /></Layout></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
+
+
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+<Route path="/tenant/:id" element={<ProtectedRoute><Layout><TenantProfile /></Layout></ProtectedRoute>} />
+<Route path="/admin" element={<ProtectedRoute><Layout><AdminPanel /></Layout></ProtectedRoute>} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

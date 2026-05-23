@@ -64,5 +64,28 @@ router.get('/analytics', async (req, res) => {
     res.status(500).json({ message: err.message })
   }
 })
+// Edit a payment
+router.put('/:id', async (req, res) => {
+  try {
+    const payment = await Payment.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    )
+    if (!payment) return res.status(404).json({ message: 'Payment not found' })
+    res.json(payment)
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
 
+// Delete a payment
+router.delete('/:id', async (req, res) => {
+  try {
+    await Payment.findByIdAndDelete(req.params.id)
+    res.json({ message: 'Payment deleted' })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
 export default router

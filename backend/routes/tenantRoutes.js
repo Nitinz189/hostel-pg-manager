@@ -15,6 +15,16 @@ router.get('/', async (req, res) => {
     res.status(500).json({ message: err.message })
   }
 })
+// Get single tenant
+router.get('/:id', async (req, res) => {
+  try {
+    const tenant = await Tenant.findById(req.params.id)
+    if (!tenant) return res.status(404).json({ message: 'Tenant not found' })
+    res.json(tenant)
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
 
 // Add tenant
 router.post('/', async (req, res) => {
