@@ -64,3 +64,13 @@ const PORT = process.env.PORT || 5000
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
+// Self ping every 4 minutes to stay alive
+import https from 'https'
+
+setInterval(() => {
+  https.get('https://hostel-pg-manager.onrender.com/health', (res) => {
+    console.log('Self ping status:', res.statusCode)
+  }).on('error', (err) => {
+    console.log('Self ping error:', err.message)
+  })
+}, 4 * 60 * 1000)
