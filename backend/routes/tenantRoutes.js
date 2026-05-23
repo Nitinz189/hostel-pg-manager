@@ -1,3 +1,4 @@
+import Owner from '../models/Owner.js'
 import express from 'express'
 import Tenant from '../models/Tenant.js'
 
@@ -27,13 +28,25 @@ router.get('/:id', async (req, res) => {
 })
 
 // Add tenant
+// Add member with limit check
 router.post('/', async (req, res) => {
   try {
+    const { ownerId } = req.body
+    const owner = await Owner.findOne({ firebaseUid: ownerId })
+    const memberCount = await Tenant.countDocuments({ ownerId })
+    const limit = owner?.memberLimit || 10
+
+    if (memberCount >= limit) {
+      return res.status(403).json({
+        message: `Member limit reached (${limit}). Please upgrade your plan to add more members.`
+      })
+    }
+
     const tenant = new Tenant(req.body)
     await tenant.save()
     res.status(201).json(tenant)
   } catch (err) {
-    console.log('Add tenant error:', err)
+    console.log('Add member error:', err)
     res.status(500).json({ message: err.message })
   }
 })

@@ -63,25 +63,29 @@ export default function Tenants() {
   }
 
   async function handleSubmit(e) {
-    e.preventDefault()
-    try {
-      if (editing) {
-        await axios.put(`${API}/tenants/${editing}`, form)
-        toast.success('Member updated!')
-      } else {
-        await axios.post(`${API}/tenants`, {
-          ...form,
-          ownerId: currentUser.uid,
-          status: 'active'
-        })
-        toast.success('Member added!')
-      }
-      setShowModal(false)
-      fetchMembers()
-    } catch (err) {
+  e.preventDefault()
+  try {
+    if (editing) {
+      await axios.put(`${API}/tenants/${editing}`, form)
+      toast.success('Member updated!')
+    } else {
+      await axios.post(`${API}/tenants`, {
+        ...form,
+        ownerId: currentUser.uid,
+        status: 'active'
+      })
+      toast.success('Member added!')
+    }
+    setShowModal(false)
+    fetchMembers()
+  } catch (err) {
+    if (err.response?.status === 403) {
+      toast.error(err.response.data.message)
+    } else {
       toast.error('Something went wrong')
     }
   }
+}
 
   async function handleDelete(id, name) {
     if (!window.confirm(`Delete ${name}? This cannot be undone.`)) return
