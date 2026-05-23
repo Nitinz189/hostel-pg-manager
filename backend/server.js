@@ -8,7 +8,6 @@ import paymentRoutes from './routes/paymentRoutes.js'
 import dashboardRoutes from './routes/dashboardRoutes.js'
 import ownerRoutes from './routes/ownerRoutes.js'
 import notificationRoutes from './routes/notificationRoutes.js'
-import { startCronJob } from './utils/cronJob.js'
 import adminRoutes from './routes/adminRoutes.js'
 
 dotenv.config()
