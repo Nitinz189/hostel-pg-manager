@@ -21,14 +21,20 @@ export default function Tenants() {
   const [loading, setLoading] = useState(true)
 
   async function fetchTenants() {
-    try {
-      const res = await axios.get(`${API}/tenants?ownerId=${currentUser.uid}`)
-      setTenants(res.data)
-    } catch (err) {
-      toast.error('Failed to load tenants')
-    }
-    setLoading(false)
+  setLoading(true)
+  try {
+    const res = await axios.get(
+      `${API}/tenants?ownerId=${currentUser.uid}`,
+      { timeout: 60000 }
+    )
+    setTenants(res.data)
+  } catch (err) {
+    console.log('Fetch tenants error:', err)
+    toast.error('Backend is waking up... retrying in 5 seconds')
+    setTimeout(fetchTenants, 5000)
   }
+  setLoading(false)
+}
 
   useEffect(() => {
     if (currentUser) fetchTenants()
