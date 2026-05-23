@@ -1,8 +1,9 @@
+import { startCronJob, checkMemberships } from './utils/cronJob.js'
 import express from 'express'
 import mongoose from 'mongoose'
 import cors from 'cors'
 import dotenv from 'dotenv'
-import tenantRoutes from './routes/tenantRoutes.js'
+import memberRoutes from './routes/memberRoutes.js'
 import paymentRoutes from './routes/paymentRoutes.js'
 import dashboardRoutes from './routes/dashboardRoutes.js'
 import ownerRoutes from './routes/ownerRoutes.js'
@@ -47,6 +48,12 @@ app.get('/', (req, res) => {
   res.json({ message: 'Hostel PG Manager API is running!' })
 })
 
+// Manual trigger for membership check
+app.get('/api/check-memberships', async (req, res) => {
+  await checkMemberships()
+  res.json({ message: 'Membership check complete!' })
+})
+
 // Health check route
 app.get('/health', (req, res) => {
   res.json({
@@ -55,7 +62,7 @@ app.get('/health', (req, res) => {
   })
 })
 
-app.use('/api/tenants', tenantRoutes)
+app.use('/api/members', memberRoutes)
 app.use('/api/payments', paymentRoutes)
 app.use('/api/dashboard', dashboardRoutes)
 app.use('/api/owner', ownerRoutes)

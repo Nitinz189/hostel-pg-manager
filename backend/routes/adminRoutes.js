@@ -1,6 +1,6 @@
 import express from 'express'
 import Owner from '../models/Owner.js'
-import Tenant from '../models/Tenant.js'
+import Tenant from '../models/Member.js'
 import Payment from '../models/Payment.js'
 import Notification from '../models/Notification.js'
 

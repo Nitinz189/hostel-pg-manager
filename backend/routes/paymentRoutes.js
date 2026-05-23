@@ -1,55 +1,76 @@
 import express from 'express'
 import Payment from '../models/Payment.js'
-import Tenant from '../models/Tenant.js'
+import Member from '../models/Member.js'
 
 const router = express.Router()
 
-// Get all payments for an owner
+// Get all payments
 router.get('/', async (req, res) => {
   try {
     const { ownerId } = req.query
-    const payments = await Payment.find({ ownerId })
+    const payments = await Payment.find({ ownerId }).sort({ createdAt: -1 })
     res.json(payments)
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
 })
 
-// Mark rent as paid
+// Mark as paid
 router.post('/mark-paid', async (req, res) => {
   try {
-    const { tenantId, ownerId, month, amount, tenantName, roomNumber } = req.body
+    const { memberId, ownerId, month, amount, memberName, registrationNumber } = req.body
     const payment = new Payment({
       ownerId,
-      tenantId,
-      tenantName,
-      roomNumber,
+      tenantId: memberId,
+      tenantName: memberName,
+      roomNumber: registrationNumber,
       amount,
       month,
       status: 'paid',
       paidOn: new Date()
     })
     await payment.save()
-    await Tenant.findByIdAndUpdate(tenantId, { paymentStatus: 'paid' })
     res.status(201).json(payment)
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
 })
 
-// Mark rent as unpaid
+// Mark as unpaid
 router.post('/mark-unpaid', async (req, res) => {
   try {
-    const { tenantId, month } = req.body
-    await Payment.findOneAndDelete({ tenantId, month })
-    await Tenant.findByIdAndUpdate(tenantId, { paymentStatus: 'unpaid' })
+    const { memberId, month } = req.body
+    await Payment.findOneAndDelete({ tenantId: memberId, month })
     res.json({ message: 'Marked as unpaid' })
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
 })
 
-// Get monthly analytics
+// Edit payment
+router.put('/:id', async (req, res) => {
+  try {
+    const payment = await Payment.findByIdAndUpdate(
+      req.params.id, req.body, { new: true }
+    )
+    if (!payment) return res.status(404).json({ message: 'Payment not found' })
+    res.json(payment)
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+// Delete payment
+router.delete('/:id', async (req, res) => {
+  try {
+    await Payment.findByIdAndDelete(req.params.id)
+    res.json({ message: 'Payment deleted' })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+// Get analytics
 router.get('/analytics', async (req, res) => {
   try {
     const { ownerId } = req.query
@@ -64,28 +85,5 @@ router.get('/analytics', async (req, res) => {
     res.status(500).json({ message: err.message })
   }
 })
-// Edit a payment
-router.put('/:id', async (req, res) => {
-  try {
-    const payment = await Payment.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    )
-    if (!payment) return res.status(404).json({ message: 'Payment not found' })
-    res.json(payment)
-  } catch (err) {
-    res.status(500).json({ message: err.message })
-  }
-})
 
-// Delete a payment
-router.delete('/:id', async (req, res) => {
-  try {
-    await Payment.findByIdAndDelete(req.params.id)
-    res.json({ message: 'Payment deleted' })
-  } catch (err) {
-    res.status(500).json({ message: err.message })
-  }
-})
 export default router
