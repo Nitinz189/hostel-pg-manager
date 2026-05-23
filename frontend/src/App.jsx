@@ -34,12 +34,13 @@ function Sidebar({ menuOpen, setMenuOpen }) {
 
 const links = [
   { to: '/dashboard', icon: '📊', label: 'Dashboard' },
-  { to: '/tenants', icon: '👥', label: 'Tenants' },
+  { to: '/tenants', icon: '💪', label: 'Members' },
   { to: '/payments', icon: '💳', label: 'Payments' },
   { to: '/notifications', icon: '🔔', label: 'Notifications' },
   { to: '/settings', icon: '⚙️', label: 'Settings' },
   ...(isAdmin ? [{ to: '/admin', icon: '🛡️', label: 'Admin' }] : []),
 ]
+
 
   return (
     <>
@@ -59,7 +60,7 @@ const links = [
           <div className="flex items-center gap-2">
             <span className="text-2xl">🏠</span>
             <div>
-              <h1 className="text-sm font-semibold text-blue-600">PG Manager</h1>
+              <h1 className="text-sm font-semibold text-blue-600">GYMmitra</h1>
               <p className="text-xs text-gray-400 truncate max-w-36">{currentUser?.email}</p>
             </div>
           </div>
@@ -101,7 +102,7 @@ function Layout({ children }) {
       <div className="md:hidden bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-2">
           <span className="text-xl">🏠</span>
-          <span className="text-sm font-semibold text-blue-600">PG Manager</span>
+          <span className="text-sm font-semibold text-blue-600">GYMmitra</span>
         </div>
         <button onClick={() => setMenuOpen(!menuOpen)} className="text-gray-600 text-xl p-1">
           ☰

@@ -3,39 +3,42 @@ import Tenant from '../models/Tenant.js'
 import Notification from '../models/Notification.js'
 
 export function startCronJob() {
-  // Runs every day at 8:00 AM
   cron.schedule('0 8 * * *', async () => {
-    console.log('Running daily rent check...')
+    console.log('Running daily membership check...')
     try {
       const today = new Date()
-      const todayDate = today.getDate()
-      const tenants = await Tenant.find({ isActive: true })
+      const sevenDaysLater = new Date()
+      sevenDaysLater.setDate(today.getDate() + 7)
 
-      for (const tenant of tenants) {
-        // Check if rent due today
-        if (tenant.rentDueDate === todayDate && tenant.paymentStatus !== 'paid') {
-          await Notification.create({
-            ownerId: tenant.ownerId,
-            title: 'Rent Due Today',
-            message: `${tenant.name} (Room ${tenant.roomNumber}) has rent of ₹${tenant.rentAmount} due today.`,
-            type: 'reminder',
-            tenantId: tenant._id
-          })
-        }
+      const members = await Tenant.find({ isActive: true })
 
-        // Check overdue — due date has passed
-        if (tenant.rentDueDate < todayDate && tenant.paymentStatus !== 'paid') {
-          await Tenant.findByIdAndUpdate(tenant._id, { paymentStatus: 'overdue' })
+      for (const member of members) {
+        const expiry = new Date(member.expiryDate)
+        const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24))
+
+        if (daysLeft < 0) {
+          await Tenant.findByIdAndUpdate(member._id, { status: 'expired' })
           await Notification.create({
-            ownerId: tenant.ownerId,
-            title: 'Rent Overdue',
-            message: `${tenant.name} (Room ${tenant.roomNumber}) rent of ₹${tenant.rentAmount} is overdue!`,
+            ownerId: member.ownerId,
+            title: 'Membership Expired',
+            message: `${member.name} (Reg: ${member.registrationNumber}) membership has expired!`,
             type: 'overdue',
-            tenantId: tenant._id
+            tenantId: member._id
           })
+        } else if (daysLeft <= 7) {
+          await Tenant.findByIdAndUpdate(member._id, { status: 'due_soon' })
+          await Notification.create({
+            ownerId: member.ownerId,
+            title: 'Membership Expiring Soon',
+            message: `${member.name} (Reg: ${member.registrationNumber}) membership expires in ${daysLeft} days on ${expiry.toLocaleDateString('en-IN')}.`,
+            type: 'reminder',
+            tenantId: member._id
+          })
+        } else {
+          await Tenant.findByIdAndUpdate(member._id, { status: 'active' })
         }
       }
-      console.log('Daily rent check complete!')
+      console.log('Daily membership check complete!')
     } catch (err) {
       console.log('Cron error:', err)
     }
