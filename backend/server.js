@@ -6,6 +6,7 @@ import https from 'https'
 import memberRoutes from './routes/memberRoutes.js'
 import paymentRoutes from './routes/paymentRoutes.js'
 import dashboardRoutes from './routes/dashboardRoutes.js'
+import dueRoutes from './routes/dueRoutes.js'
 import ownerRoutes from './routes/ownerRoutes.js'
 import notificationRoutes from './routes/notificationRoutes.js'
 import adminRoutes from './routes/adminRoutes.js'
@@ -52,6 +53,7 @@ app.use('/api/dashboard', dashboardRoutes)
 app.use('/api/owner', ownerRoutes)
 app.use('/api/notifications', notificationRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/dues', dueRoutes)
 
 // Self ping
 setInterval(() => {
