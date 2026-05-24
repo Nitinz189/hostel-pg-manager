@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
 // Mark as paid
 router.post('/mark-paid', async (req, res) => {
   try {
-    const { ownerId } = req.body
+    
     const owner = await Owner.findOne({ firebaseUid: ownerId })
     if (owner?.planEndDate && new Date(owner.planEndDate) < new Date()) {
       return res.status(403).json({ message: 'Your GYMmitra plan has expired. Contact admin to renew.' })
