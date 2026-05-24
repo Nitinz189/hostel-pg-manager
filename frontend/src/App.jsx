@@ -7,10 +7,14 @@ import Dashboard from './pages/Dashboard'
 import Members from './pages/Members'
 import Revenue from './pages/Revenue'
 import Settings from './pages/Settings'
-import Notifications from './pages/Notifications'
 import ForgotPassword from './pages/ForgotPassword'
 import MemberProfile from './pages/MemberProfile'
 import AdminPanel from './pages/AdminPanel'
+import TermsOfService from './pages/TermsOfService'
+import PrivacyPolicy from './pages/PrivacyPolicy'
+import PlanBanner from './components/PlanBanner'
+import ExpiredWall from './components/ExpiredWall'
+import { usePlanStatus } from './hooks/usePlanStatus'
 import { Toaster } from 'react-hot-toast'
 
 function ProtectedRoute({ children }) {
@@ -24,6 +28,13 @@ function ProtectedRoute({ children }) {
     </div>
   )
   return currentUser ? children : <Navigate to="/login" />
+}
+
+function PlanGuard({ children }) {
+  const { isExpired, loading } = usePlanStatus()
+  if (loading) return null
+  if (isExpired) return <ExpiredWall />
+  return children
 }
 
 function Sidebar({ menuOpen, setMenuOpen }) {
@@ -60,11 +71,7 @@ function Sidebar({ menuOpen, setMenuOpen }) {
               key={link.to}
               to={link.to}
               onClick={() => setMenuOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                location.pathname === link.to
-                  ? 'bg-blue-50 text-blue-600'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
-              }`}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${location.pathname === link.to ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'}`}
             >
               <span className="text-base">{link.icon}</span>
               {link.label}
@@ -93,7 +100,10 @@ function Layout({ children }) {
         <button onClick={() => setMenuOpen(!menuOpen)} className="text-gray-600 text-xl p-1">☰</button>
       </div>
       <Sidebar menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
-      <div className="md:ml-60 min-h-screen">{children}</div>
+      <div className="md:ml-60 min-h-screen">
+        <PlanBanner />
+        {children}
+      </div>
     </div>
   )
 }
@@ -108,11 +118,13 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
-          <Route path="/members" element={<ProtectedRoute><Layout><Members /></Layout></ProtectedRoute>} />
-          <Route path="/member/:id" element={<ProtectedRoute><Layout><MemberProfile /></Layout></ProtectedRoute>} />
-          <Route path="/revenue" element={<ProtectedRoute><Layout><Revenue /></Layout></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/dashboard" element={<ProtectedRoute><PlanGuard><Layout><Dashboard /></Layout></PlanGuard></ProtectedRoute>} />
+          <Route path="/members" element={<ProtectedRoute><PlanGuard><Layout><Members /></Layout></PlanGuard></ProtectedRoute>} />
+          <Route path="/member/:id" element={<ProtectedRoute><PlanGuard><Layout><MemberProfile /></Layout></PlanGuard></ProtectedRoute>} />
+          <Route path="/revenue" element={<ProtectedRoute><PlanGuard><Layout><Revenue /></Layout></PlanGuard></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><PlanGuard><Layout><Settings /></Layout></PlanGuard></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><Layout><AdminPanel /></Layout></ProtectedRoute>} />
         </Routes>
       </AuthProvider>

@@ -4,6 +4,12 @@ import Owner from '../models/Owner.js'
 
 const router = express.Router()
 
+function isPlanExpired(owner) {
+  if (!owner) return false
+  if (!owner.planEndDate) return false
+  return new Date(owner.planEndDate) < new Date()
+}
+
 // Get all members
 router.get('/', async (req, res) => {
   try {
@@ -27,21 +33,22 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-// Add member with limit check
+// Add member — blocked if plan expired or limit reached
 router.post('/', async (req, res) => {
   try {
     const { ownerId } = req.body
     const owner = await Owner.findOne({ firebaseUid: ownerId })
-    const memberCount = await Member.countDocuments({
-      ownerId,
-      status: { $ne: 'inactive' }
-    })
+
+    if (isPlanExpired(owner)) {
+      return res.status(403).json({ message: 'Your GYMmitra plan has expired. Contact admin to renew.' })
+    }
+
+    const memberCount = await Member.countDocuments({ ownerId, status: { $ne: 'inactive' } })
     const limit = owner?.memberLimit || 10
     if (memberCount >= limit) {
-      return res.status(403).json({
-        message: `Member limit reached (${limit}). Please contact admin to upgrade your plan.`
-      })
+      return res.status(403).json({ message: `Member limit reached (${limit}). Contact admin to upgrade.` })
     }
+
     const member = new Member(req.body)
     await member.save()
     res.status(201).json(member)
@@ -50,22 +57,35 @@ router.post('/', async (req, res) => {
   }
 })
 
-// Edit member
+// Edit member — blocked if plan expired
 router.put('/:id', async (req, res) => {
   try {
-    const member = await Member.findByIdAndUpdate(
-      req.params.id, req.body, { new: true }
-    )
+    const member = await Member.findById(req.params.id)
     if (!member) return res.status(404).json({ message: 'Member not found' })
-    res.json(member)
+
+    const owner = await Owner.findOne({ firebaseUid: member.ownerId })
+    if (isPlanExpired(owner)) {
+      return res.status(403).json({ message: 'Your GYMmitra plan has expired. Contact admin to renew.' })
+    }
+
+    const updated = await Member.findByIdAndUpdate(req.params.id, req.body, { new: true })
+    res.json(updated)
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
 })
 
-// Delete member
+// Delete member — blocked if plan expired
 router.delete('/:id', async (req, res) => {
   try {
+    const member = await Member.findById(req.params.id)
+    if (!member) return res.status(404).json({ message: 'Member not found' })
+
+    const owner = await Owner.findOne({ firebaseUid: member.ownerId })
+    if (isPlanExpired(owner)) {
+      return res.status(403).json({ message: 'Your GYMmitra plan has expired. Contact admin to renew.' })
+    }
+
     await Member.findByIdAndDelete(req.params.id)
     res.json({ message: 'Member deleted' })
   } catch (err) {

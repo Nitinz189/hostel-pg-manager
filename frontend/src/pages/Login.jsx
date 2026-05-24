@@ -97,6 +97,14 @@ export default function Login() {
           </p>
         </div>
       </div>
+      <div className="mt-6 pt-4 border-t border-gray-100 text-center">
+  <p className="text-xs text-gray-400">
+    By using GYMmitra you agree to our{' '}
+    <Link to="/terms" className="text-blue-500 hover:underline">Terms of Service</Link>
+    {' '}and{' '}
+    <Link to="/privacy" className="text-blue-500 hover:underline">Privacy Policy</Link>
+  </p>
+</div>
     </div>
   )
 }

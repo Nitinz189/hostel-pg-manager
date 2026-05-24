@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import toast from 'react-hot-toast'
+import { usePlanStatus } from '../hooks/usePlanStatus'
 
 const API = import.meta.env.VITE_API_URL
 
@@ -22,6 +23,37 @@ function calculateExpiry(joiningDate, membershipType) {
   return date.toISOString().split('T')[0]
 }
 
+function validateMobile(mobile) {
+  const cleaned = mobile.replace(/\D/g, '')
+  if (cleaned.length !== 10) return 'Mobile number must be exactly 10 digits'
+  if (!['6','7','8','9'].includes(cleaned[0])) return 'Mobile number must start with 6, 7, 8, or 9'
+  return null
+}
+
+function exportToCSV(members) {
+  const headers = ['Registration Number', 'Name', 'Mobile', 'Membership Type', 'Membership Fee', 'Joining Date', 'Expiry Date', 'Status', 'Notes']
+  const rows = members.map(m => [
+    m.registrationNumber || '',
+    m.name || '',
+    m.mobile || '',
+    m.membershipType || '',
+    m.membershipFee || '',
+    m.joiningDate ? new Date(m.joiningDate).toLocaleDateString('en-IN') : '',
+    m.expiryDate ? new Date(m.expiryDate).toLocaleDateString('en-IN') : '',
+    m.status || '',
+    (m.notes || '').replace(/,/g, ';')
+  ])
+  const csvContent = [headers, ...rows].map(r => r.join(',')).join('\n')
+  const blob = new Blob([csvContent], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `gymmitra-members-${new Date().toLocaleDateString('en-IN').replace(/\//g, '-')}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+  toast.success('Members exported!')
+}
+
 function ConfirmModal({ message, onConfirm, onCancel }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
@@ -39,12 +71,15 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
 export default function Members() {
   const { currentUser } = useAuth()
   const navigate = useNavigate()
+  const { isExpired } = usePlanStatus()
   const [members, setMembers] = useState([])
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [planFilter, setPlanFilter] = useState('all')
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(empty)
+  const [mobileError, setMobileError] = useState('')
   const [loading, setLoading] = useState(true)
   const [confirmDelete, setConfirmDelete] = useState(null)
 
@@ -73,13 +108,26 @@ export default function Members() {
     setForm({ ...form, membershipType: type, expiryDate: expiry })
   }
 
+  function handleMobileChange(val) {
+    const cleaned = val.replace(/\D/g, '').substring(0, 10)
+    setForm({...form, mobile: cleaned})
+    if (cleaned.length > 0) {
+      setMobileError(validateMobile(cleaned) || '')
+    } else {
+      setMobileError('')
+    }
+  }
+
   function openAdd() {
+    if (isExpired) return toast.error('Your plan has expired. Contact admin.')
     setEditing(null)
     setForm(empty)
+    setMobileError('')
     setShowModal(true)
   }
 
   function openEdit(member) {
+    if (isExpired) return toast.error('Your plan has expired. Contact admin.')
     setEditing(member._id)
     setForm({
       name: member.name,
@@ -91,19 +139,23 @@ export default function Members() {
       expiryDate: member.expiryDate?.split('T')[0],
       notes: member.notes || ''
     })
+    setMobileError('')
     setShowModal(true)
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
+    const mobileErr = validateMobile(form.mobile)
+    if (mobileErr) {
+      setMobileError(mobileErr)
+      return
+    }
     try {
       if (editing) {
         await axios.put(`${API}/members/${editing}`, form)
         toast.success('Member updated!')
       } else {
-        await axios.post(`${API}/members`, {
-          ...form, ownerId: currentUser.uid, status: 'active'
-        })
+        await axios.post(`${API}/members`, { ...form, ownerId: currentUser.uid, status: 'active' })
         toast.success('Member added!')
       }
       setShowModal(false)
@@ -128,11 +180,34 @@ export default function Members() {
     }
   }
 
+  const planCounts = {
+    Monthly: members.filter(m => m.membershipType === 'Monthly').length,
+    '3 Months': members.filter(m => m.membershipType === '3 Months').length,
+    '6 Months': members.filter(m => m.membershipType === '6 Months').length,
+    Yearly: members.filter(m => m.membershipType === 'Yearly').length,
+  }
+
+  const activeCount = members.filter(m => m.status === 'active' || m.status === 'due_soon').length
+  const inactiveCount = members.filter(m => m.status === 'inactive').length
+
+  const filtered = members.filter(m => {
+    const matchSearch =
+      m.name?.toLowerCase().includes(search.toLowerCase()) ||
+      m.registrationNumber?.toLowerCase().includes(search.toLowerCase()) ||
+      m.mobile?.includes(search)
+    const matchStatus =
+      statusFilter === 'all' ? true :
+      statusFilter === 'active' ? (m.status === 'active' || m.status === 'due_soon') :
+      statusFilter === 'inactive' ? m.status === 'inactive' : true
+    const matchPlan = planFilter === 'all' || m.membershipType === planFilter
+    return matchSearch && matchStatus && matchPlan
+  })
+
   const statusColor = {
-    active: 'border-green-200 bg-green-50',
-    due_soon: 'border-yellow-200 bg-yellow-50',
-    expired: 'border-red-200 bg-red-50',
-    inactive: 'border-gray-200 bg-gray-50'
+    active: 'border-green-200',
+    due_soon: 'border-yellow-200',
+    expired: 'border-red-200',
+    inactive: 'border-gray-200'
   }
 
   const statusBadge = {
@@ -143,42 +218,61 @@ export default function Members() {
   }
 
   const statusLabel = {
-    active: 'Active',
-    due_soon: 'Expiring Soon',
-    expired: 'Expired',
-    inactive: 'Inactive'
+    active: 'Active', due_soon: 'Expiring', expired: 'Expired', inactive: 'Inactive'
   }
-
-  const filtered = members.filter(m => {
-    const matchSearch =
-      m.name.toLowerCase().includes(search.toLowerCase()) ||
-      m.registrationNumber?.toLowerCase().includes(search.toLowerCase()) ||
-      m.mobile?.includes(search)
-    const matchFilter = filter === 'all' || m.status === filter
-    return matchSearch && matchFilter
-  })
 
   return (
     <div className="p-4 md:p-6">
       {confirmDelete && (
         <ConfirmModal
-          message={`Are you sure you want to delete ${confirmDelete.name}? This cannot be undone.`}
+          message={`Delete ${confirmDelete.name}? This cannot be undone.`}
           onConfirm={() => handleDelete(confirmDelete.id)}
           onCancel={() => setConfirmDelete(null)}
         />
       )}
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-semibold text-gray-800">Members</h1>
-          <p className="text-gray-500 text-sm">{members.length} total members</p>
+          <p className="text-gray-500 text-sm">{members.length} total</p>
         </div>
-        <button onClick={openAdd} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-700 transition">
-          + Add Member
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => exportToCSV(members)}
+            className="border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-xs font-medium hover:bg-gray-50 transition"
+          >
+            Export CSV
+          </button>
+          <button
+            onClick={openAdd}
+            disabled={isExpired}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition ${isExpired ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+          >
+            + Add Member
+          </button>
+        </div>
       </div>
 
-      {/* Search and Filter */}
+      {/* Plan distribution pills */}
+      <div className="flex gap-2 flex-wrap mb-3">
+        <button
+          onClick={() => setPlanFilter('all')}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${planFilter === 'all' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+        >
+          All ({members.length})
+        </button>
+        {Object.entries(planCounts).map(([plan, count]) => (
+          <button
+            key={plan}
+            onClick={() => setPlanFilter(planFilter === plan ? 'all' : plan)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${planFilter === plan ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+          >
+            {plan} ({count})
+          </button>
+        ))}
+      </div>
+
+      {/* Status tabs + search */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <input
           type="text"
@@ -187,20 +281,16 @@ export default function Members() {
           onChange={e => setSearch(e.target.value)}
           className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2">
           {[
-            { value: 'all', label: 'All' },
-            { value: 'active', label: 'Active' },
-            { value: 'due_soon', label: 'Expiring' },
-            { value: 'expired', label: 'Expired' },
-            { value: 'inactive', label: 'Inactive' },
+            { value: 'all', label: `All (${members.length})` },
+            { value: 'active', label: `Active (${activeCount})` },
+            { value: 'inactive', label: `Inactive (${inactiveCount})` },
           ].map(f => (
             <button
               key={f.value}
-              onClick={() => setFilter(f.value)}
-              className={`px-3 py-2 rounded-xl text-xs font-medium transition ${
-                filter === f.value ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-              }`}
+              onClick={() => setStatusFilter(f.value)}
+              className={`px-3 py-2 rounded-xl text-xs font-medium transition whitespace-nowrap ${statusFilter === f.value ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
             >
               {f.label}
             </button>
@@ -226,26 +316,26 @@ export default function Members() {
           {filtered.map(member => (
             <div
               key={member._id}
-              className={`border-2 rounded-2xl p-4 cursor-pointer transition hover:shadow-md ${statusColor[member.status]}`}
+              className={`border-2 rounded-2xl p-4 cursor-pointer transition hover:shadow-md bg-white ${statusColor[member.status] || 'border-gray-200'}`}
               onClick={() => navigate(`/member/${member._id}`)}
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center text-sm font-bold text-blue-600 shadow-sm">
+                  <div className="w-9 h-9 bg-blue-50 rounded-full flex items-center justify-center text-sm font-bold text-blue-600">
                     {member.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-800">{member.name}</p>
-                    <p className="text-xs text-gray-500">#{member.registrationNumber}</p>
+                    <p className="text-xs text-gray-400">#{member.registrationNumber}</p>
                   </div>
                 </div>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusBadge[member.status]}`}>
                   {statusLabel[member.status]}
                 </span>
               </div>
-              <div className="flex justify-between text-xs text-gray-500 mt-3">
+              <div className="flex justify-between text-xs text-gray-400 mt-2">
                 <span>{member.membershipType}</span>
-                <span>Exp: {member.expiryDate ? new Date(member.expiryDate).toLocaleDateString('en-IN') : 'N/A'}</span>
+                <span>{member.expiryDate ? new Date(member.expiryDate).toLocaleDateString('en-IN') : 'N/A'}</span>
               </div>
             </div>
           ))}
@@ -266,7 +356,19 @@ export default function Members() {
               </div>
               <div>
                 <label className="text-sm text-gray-600 mb-1 block">Mobile Number</label>
-                <input required value={form.mobile} onChange={e => setForm({...form, mobile: e.target.value})} placeholder="10 digit number" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <input
+                  required
+                  value={form.mobile}
+                  onChange={e => handleMobileChange(e.target.value)}
+                  placeholder="10 digit Indian mobile number"
+                  maxLength={10}
+                  inputMode="numeric"
+                  className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${mobileError ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
+                />
+                {mobileError && <p className="text-xs text-red-500 mt-1">{mobileError}</p>}
+                {form.mobile.length > 0 && !mobileError && form.mobile.length === 10 && (
+                  <p className="text-xs text-green-500 mt-1">Valid mobile number</p>
+                )}
               </div>
               <div>
                 <label className="text-sm text-gray-600 mb-1 block">Registration Number</label>
@@ -291,18 +393,23 @@ export default function Members() {
               </div>
               <div>
                 <label className="text-sm text-gray-600 mb-1 block">
-                  Expiry Date
-                  <span className="text-xs text-blue-500 ml-2">(auto calculated)</span>
+                  Expiry Date <span className="text-xs text-blue-500">(auto calculated)</span>
                 </label>
-                <input type="date" value={form.expiryDate} onChange={e => setForm({...form, expiryDate: e.target.value})} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50" />
+                <input type="date" value={form.expiryDate} onChange={e => setForm({...form, expiryDate: e.target.value})} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
                 <label className="text-sm text-gray-600 mb-1 block">Notes (optional)</label>
-                <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} placeholder="Any notes about this member" rows={2} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} placeholder="Any notes" rows={2} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setShowModal(false)} className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm hover:bg-gray-50">Cancel</button>
-                <button type="submit" className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-blue-700">{editing ? 'Save Changes' : 'Add Member'}</button>
+                <button type="button" onClick={() => setShowModal(false)} className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm">Cancel</button>
+                <button
+                  type="submit"
+                  disabled={!!mobileError}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-medium ${mobileError ? 'bg-gray-200 text-gray-400' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                >
+                  {editing ? 'Save Changes' : 'Add Member'}
+                </button>
               </div>
             </form>
           </div>

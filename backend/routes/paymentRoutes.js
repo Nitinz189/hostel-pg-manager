@@ -1,3 +1,4 @@
+import Owner from '../models/Owner.js'
 import express from 'express'
 import Payment from '../models/Payment.js'
 import Member from '../models/Member.js'
@@ -18,6 +19,11 @@ router.get('/', async (req, res) => {
 // Mark as paid
 router.post('/mark-paid', async (req, res) => {
   try {
+    const { ownerId } = req.body
+    const owner = await Owner.findOne({ firebaseUid: ownerId })
+    if (owner?.planEndDate && new Date(owner.planEndDate) < new Date()) {
+      return res.status(403).json({ message: 'Your GYMmitra plan has expired. Contact admin to renew.' })
+    }
     const { memberId, ownerId, month, amount, memberName, registrationNumber } = req.body
     const payment = new Payment({
       ownerId,

@@ -29,8 +29,82 @@ function calculateExpiry(joiningDate, membershipType) {
   else if (membershipType === 'Yearly') date.setFullYear(date.getFullYear() + 1)
   return date.toISOString().split('T')[0]
 }
+function EditMemberForm({ member, onSave, onCancel }) {
+  const [form, setForm] = useState({
+    name: member.name,
+    mobile: member.mobile,
+    registrationNumber: member.registrationNumber,
+    membershipType: member.membershipType || 'Monthly',
+    membershipFee: member.membershipFee,
+    joiningDate: member.joiningDate?.split('T')[0],
+    expiryDate: member.expiryDate?.split('T')[0],
+    notes: member.notes || ''
+  })
 
+  function calculateExpiry(joiningDate, membershipType) {
+    if (!joiningDate) return ''
+    const date = new Date(joiningDate)
+    if (membershipType === 'Monthly') date.setMonth(date.getMonth() + 1)
+    else if (membershipType === '3 Months') date.setMonth(date.getMonth() + 3)
+    else if (membershipType === '6 Months') date.setMonth(date.getMonth() + 6)
+    else if (membershipType === 'Yearly') date.setFullYear(date.getFullYear() + 1)
+    return date.toISOString().split('T')[0]
+  }
+
+  return (
+    <form onSubmit={e => { e.preventDefault(); onSave(form) }} className="space-y-3">
+      <div>
+        <label className="text-sm text-gray-600 mb-1 block">Full Name</label>
+        <input required value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <div>
+        <label className="text-sm text-gray-600 mb-1 block">Mobile</label>
+        <input required value={form.mobile} onChange={e => setForm({...form, mobile: e.target.value.replace(/\D/g,'').substring(0,10)})} maxLength={10} inputMode="numeric" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <div>
+        <label className="text-sm text-gray-600 mb-1 block">Registration Number</label>
+        <input required value={form.registrationNumber} onChange={e => setForm({...form, registrationNumber: e.target.value})} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <div>
+        <label className="text-sm text-gray-600 mb-1 block">Membership Type</label>
+        <select value={form.membershipType} onChange={e => {
+          const expiry = calculateExpiry(form.joiningDate, e.target.value)
+          setForm({...form, membershipType: e.target.value, expiryDate: expiry})
+        }} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="Monthly">Monthly</option>
+          <option value="3 Months">3 Months</option>
+          <option value="6 Months">6 Months</option>
+          <option value="Yearly">Yearly</option>
+        </select>
+      </div>
+      <div>
+        <label className="text-sm text-gray-600 mb-1 block">Fee (₹)</label>
+        <input required type="number" value={form.membershipFee} onChange={e => setForm({...form, membershipFee: e.target.value})} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <div>
+        <label className="text-sm text-gray-600 mb-1 block">Joining Date</label>
+        <input type="date" value={form.joiningDate} onChange={e => {
+          const expiry = calculateExpiry(e.target.value, form.membershipType)
+          setForm({...form, joiningDate: e.target.value, expiryDate: expiry})
+        }} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <div>
+        <label className="text-sm text-gray-600 mb-1 block">Expiry Date</label>
+        <input type="date" value={form.expiryDate} onChange={e => setForm({...form, expiryDate: e.target.value})} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <div>
+        <label className="text-sm text-gray-600 mb-1 block">Notes</label>
+        <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={2} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <div className="flex gap-2 pt-2">
+        <button type="button" onClick={onCancel} className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm">Cancel</button>
+        <button type="submit" className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium">Save Changes</button>
+      </div>
+    </form>
+  )
+}
 export default function MemberProfile() {
+  const [showEdit, setShowEdit] = useState(false)
   const { id } = useParams()
   const { currentUser } = useAuth()
   const navigate = useNavigate()
@@ -252,6 +326,7 @@ export default function MemberProfile() {
 
           {/* Action buttons */}
           <div className="flex flex-wrap gap-2">
+            <button onClick={() => {setShowEdit(true)}}className="border border-blue-200 text-blue-600 px-3 py-2 rounded-xl text-xs font-medium hover:bg-blue-50 transition">Edit</button>
             <button onClick={sendWhatsApp} className="bg-green-500 text-white px-3 py-2 rounded-xl text-xs font-medium hover:bg-green-600 transition">
               WhatsApp
             </button>
@@ -422,6 +497,23 @@ export default function MemberProfile() {
           </div>
         </div>
       )}
+      {showEdit && (
+  <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <h2 className="text-lg font-semibold text-gray-800 mb-4">Edit Member</h2>
+      <EditMemberForm
+        member={member}
+        onSave={async (form) => {
+          await axios.put(`${API}/members/${id}`, form)
+          toast.success('Member updated!')
+          setShowEdit(false)
+          fetchData()
+        }}
+        onCancel={() => setShowEdit(false)}
+      />
+    </div>
+  </div>
+)}
     </div>
   )
 }
