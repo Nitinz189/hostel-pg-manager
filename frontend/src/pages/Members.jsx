@@ -89,19 +89,24 @@ export default function Members() {
   try {
     const res = await axios.get(`${API}/members?ownerId=${currentUser.uid}`, { timeout: 60000 })
     setMembers(res.data)
-    
-    // Fetch dues for all members
+  } catch (err) {
+    console.log('Members fetch error:', err)
+  }
+
+  // Fetch dues separately
+  try {
     const duesRes = await axios.get(`${API}/dues?ownerId=${currentUser.uid}`)
     const duesMap = {}
     duesRes.data.forEach(due => {
-      const memberId = due.memberId
+      const memberId = String(due.memberId)
       if (!duesMap[memberId]) duesMap[memberId] = 0
       duesMap[memberId] += (due.amount - due.paidAmount)
     })
     setMemberDues(duesMap)
   } catch (err) {
-    console.log('Error loading members:', err)
+    console.log('Dues fetch error:', err)
   }
+
   setLoading(false)
 }
 
