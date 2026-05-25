@@ -120,7 +120,7 @@ export default function Dashboard() {
           <div>
             <h2 className="text-sm font-bold text-orange-700">Expiring This Week</h2>
             <p className="text-xs text-orange-400">Next 7 days — call them now</p>
-            <Link to="/expiring-members" className="text-xs text-orange-600 font-semibold">View All →</Link>
+            <Link to="/expiring-members" className="mt-3 flex items-center justify-center gap-2 border border-orange-100 text-orange-600 py-3 rounded-xl text-sm font-medium hover:bg-orange-50 transition">View all expiring<span>→</span></Link>
           </div>
           <span className="text-xl font-bold text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
             {stats.expiringThisWeek.length}
@@ -166,7 +166,7 @@ export default function Dashboard() {
             <div>
               <h2 className="text-sm font-bold text-red-700">Expired Members</h2>
               <p className="text-xs text-red-400">Need renewal</p>
-              <Link to="/expired-members" className="text-xs text-red-600 font-semibold">View All →</Link>
+              <Link to="/expired-members" className="mt-3 flex items-center justify-center gap-2 border border-red-100 text-red-600 py-3 rounded-xl text-sm font-medium hover:bg-red-50 transition">View all expired<span>→</span></Link>
             </div>
             <span className="text-xl font-bold text-red-600 bg-red-50 px-3 py-1 rounded-full">
               {stats.expiredMembers}
@@ -203,7 +203,7 @@ export default function Dashboard() {
             <div>
               <h2 className="text-sm font-bold text-red-700">Due Payments</h2>
               <p className="text-xs text-red-400">Total: ₹{dueData.totalDue.toLocaleString()}</p>
-              <Link to="/due-members" className="text-xs text-red-600 font-semibold">View All →</Link>
+              <Link to="/due-members" className="mt-3 flex items-center justify-center gap-2 border border-red-100 text-red-600 py-3 rounded-xl text-sm font-medium hover:bg-red-50 transition">View all due payments<span>→</span></Link>
             </div>
             <span className="text-xl font-bold text-red-600 bg-red-50 px-3 py-1 rounded-full">
               {dueData.dues.length}
