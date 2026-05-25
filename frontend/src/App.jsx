@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
-import { useState } from 'react'
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Login from './pages/Login'
