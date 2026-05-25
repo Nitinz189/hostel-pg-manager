@@ -17,7 +17,7 @@ import PlanBanner from './components/PlanBanner'
 import ExpiredWall from './components/ExpiredWall'
 import { usePlanStatus } from './hooks/usePlanStatus'
 import { Toaster } from 'react-hot-toast'
-import FilteredMembers from './pages/FilteredMembers'
+
 
 function ProtectedRoute({ children }) {
   const { currentUser, loading } = useAuth()
@@ -220,9 +220,6 @@ function App() {
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/dashboard" element={<ProtectedRoute><PlanGuard><Layout><Dashboard /></Layout></PlanGuard></ProtectedRoute>} />
           <Route path="/members" element={<ProtectedRoute><PlanGuard><Layout><Members /></Layout></PlanGuard></ProtectedRoute>} />
-          <Route path="/expiring-members" element={<ProtectedRoute><PlanGuard><Layout><FilteredMembers /></Layout></PlanGuard></ProtectedRoute>} />
-          <Route path="/expired-members" element={<ProtectedRoute><PlanGuard><Layout><FilteredMembers /></Layout></PlanGuard></ProtectedRoute>} />
-          <Route path="/due-members" element={<ProtectedRoute><PlanGuard><Layout><FilteredMembers /></Layout></PlanGuard></ProtectedRoute>} />
           <Route path="/member/:id" element={<ProtectedRoute><PlanGuard><Layout><MemberProfile /></Layout></PlanGuard></ProtectedRoute>} />
           <Route path="/revenue" element={<ProtectedRoute><PlanGuard><Layout><Revenue /></Layout></PlanGuard></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><PlanGuard><Layout><Settings /></Layout></PlanGuard></ProtectedRoute>} />

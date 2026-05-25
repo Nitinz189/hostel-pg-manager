@@ -120,7 +120,6 @@ export default function Dashboard() {
           <div>
             <h2 className="text-sm font-bold text-orange-700">Expiring This Week</h2>
             <p className="text-xs text-orange-400">Next 7 days — call them now</p>
-            <Link to="/expiring-members" className="mt-3 flex items-center justify-center gap-2 border border-orange-100 text-orange-600 py-3 rounded-xl text-sm font-medium hover:bg-orange-50 transition">View all expiring<span>→</span></Link>
           </div>
           <span className="text-xl font-bold text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
             {stats.expiringThisWeek.length}
@@ -130,7 +129,7 @@ export default function Dashboard() {
           <p className="text-sm text-gray-400 text-center py-3">No memberships expiring this week</p>
         ) : (
           <div className="space-y-2">
-            {stats.expiringThisWeek.slice(0, 5).map(member => {
+            {stats.expiringThisWeek.map(member => {
               const daysLeft = Math.ceil((new Date(member.expiryDate) - new Date()) / (1000 * 60 * 60 * 24))
               return (
                 <Link
@@ -166,7 +165,6 @@ export default function Dashboard() {
             <div>
               <h2 className="text-sm font-bold text-red-700">Expired Members</h2>
               <p className="text-xs text-red-400">Need renewal</p>
-              <Link to="/expired-members" className="mt-3 flex items-center justify-center gap-2 border border-red-100 text-red-600 py-3 rounded-xl text-sm font-medium hover:bg-red-50 transition">View all expired<span>→</span></Link>
             </div>
             <span className="text-xl font-bold text-red-600 bg-red-50 px-3 py-1 rounded-full">
               {stats.expiredMembers}
@@ -176,7 +174,7 @@ export default function Dashboard() {
             <p className="text-sm text-gray-400 text-center py-3">No expired memberships</p>
           ) : (
             <div className="space-y-2">
-              {stats.expiredList.slice(0, 5).map(member => (
+              {stats.expiredList.map(member => (
                 <Link
                   key={member._id}
                   to={`/member/${member._id}`}
@@ -203,7 +201,6 @@ export default function Dashboard() {
             <div>
               <h2 className="text-sm font-bold text-red-700">Due Payments</h2>
               <p className="text-xs text-red-400">Total: ₹{dueData.totalDue.toLocaleString()}</p>
-              <Link to="/due-members" className="mt-3 flex items-center justify-center gap-2 border border-red-100 text-red-600 py-3 rounded-xl text-sm font-medium hover:bg-red-50 transition">View all due payments<span>→</span></Link>
             </div>
             <span className="text-xl font-bold text-red-600 bg-red-50 px-3 py-1 rounded-full">
               {dueData.dues.length}
@@ -213,7 +210,7 @@ export default function Dashboard() {
             <p className="text-sm text-gray-400 text-center py-3">No pending dues</p>
           ) : (
             <div className="space-y-2">
-              {dueData.dues.slice(0, 5).map(due => (
+              {dueData.dues.map(due => (
                 <div key={due._id}>
                   {payingDue === due._id ? (
                     <div className="bg-green-50 border border-green-100 rounded-xl p-3">
