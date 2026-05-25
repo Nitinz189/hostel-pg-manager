@@ -19,17 +19,16 @@ router.get('/', async (req, res) => {
 // Mark as paid
 router.post('/mark-paid', async (req, res) => {
   try {
-    
+    const { memberId, tenantId, ownerId, month, amount, memberName, tenantName, registrationNumber, roomNumber } = req.body
     const owner = await Owner.findOne({ firebaseUid: ownerId })
     if (owner?.planEndDate && new Date(owner.planEndDate) < new Date()) {
-      return res.status(403).json({ message: 'Your GYMmitra plan has expired. Contact admin to renew.' })
+      return res.status(403).json({ message: 'Your GYMmitra plan has expired.' })
     }
-    const { memberId, ownerId, month, amount, memberName, registrationNumber } = req.body
     const payment = new Payment({
       ownerId,
-      tenantId: memberId,
-      tenantName: memberName,
-      roomNumber: registrationNumber,
+      tenantId: memberId || tenantId,
+      tenantName: memberName || tenantName,
+      roomNumber: registrationNumber || roomNumber,
       amount,
       month,
       status: 'paid',

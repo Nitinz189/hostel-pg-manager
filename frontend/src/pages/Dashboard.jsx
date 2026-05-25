@@ -129,7 +129,7 @@ export default function Dashboard() {
           <p className="text-sm text-gray-400 text-center py-3">No memberships expiring this week</p>
         ) : (
           <div className="space-y-2">
-            {stats.expiringThisWeek.map(member => {
+            {stats.expiringThisWeek.slice(0, 5).map(member => {
               const daysLeft = Math.ceil((new Date(member.expiryDate) - new Date()) / (1000 * 60 * 60 * 24))
               return (
                 <Link
@@ -152,6 +152,8 @@ export default function Dashboard() {
                 </Link>
               )
             })}
+            {stats.expiringThisWeek.length > 5 && (
+  <Link to="/expiring-members" className="block text-center text-xs text-orange-600 hover:underline mt-2"> View all {stats.expiringThisWeek.length} expiring members →</Link>)}
           </div>
         )}
       </div>
@@ -174,7 +176,7 @@ export default function Dashboard() {
             <p className="text-sm text-gray-400 text-center py-3">No expired memberships</p>
           ) : (
             <div className="space-y-2">
-              {stats.expiredList.map(member => (
+              {stats.expiredList.slice(0, 5).map(member => (
                 <Link
                   key={member._id}
                   to={`/member/${member._id}`}
@@ -191,6 +193,7 @@ export default function Dashboard() {
                   </p>
                 </Link>
               ))}
+              {stats.expiredList.length > 5 && (<Link to="/expired-members" className="block text-center text-xs text-red-600 hover:underline mt-2">View all {stats.expiredMembers} expired members →</Link>)}
             </div>
           )}
         </div>
@@ -210,7 +213,7 @@ export default function Dashboard() {
             <p className="text-sm text-gray-400 text-center py-3">No pending dues</p>
           ) : (
             <div className="space-y-2">
-              {dueData.dues.map(due => (
+              {dueData.dues.slice(0, 5).map(due => (
                 <div key={due._id}>
                   {payingDue === due._id ? (
                     <div className="bg-green-50 border border-green-100 rounded-xl p-3">
@@ -272,6 +275,11 @@ export default function Dashboard() {
                   )}
                 </div>
               ))}
+              {dueData.dues.length > 5 && (
+  <Link to="/due-members" className="block text-center text-xs text-red-600 hover:underline mt-2">
+    View all {dueData.dues.length} due members →
+  </Link>
+)}
             </div>
           )}
         </div>

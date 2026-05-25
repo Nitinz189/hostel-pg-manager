@@ -111,13 +111,14 @@ export default function MemberProfile() {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [confirmPayDelete, setConfirmPayDelete] = useState(null)
 
-  const [showRenew, setShowRenew] = useState(false)
-  const [renewForm, setRenewForm] = useState({
-    membershipType: 'Monthly',
-    membershipFee: '',
-    joiningDate: new Date().toISOString().split('T')[0],
-    expiryDate: ''
-  })
+ const [showRenew, setShowRenew] = useState(false)
+ const today = new Date().toISOString().split('T')[0]
+ const [renewForm, setRenewForm] = useState({
+  membershipType: 'Monthly',
+  membershipFee: '',
+  joiningDate: today,
+  expiryDate: calculateExpiry(today, 'Monthly')
+ })
 
   const [showEdit, setShowEdit] = useState(false)
   const [showAddDue, setShowAddDue] = useState(false)
@@ -224,14 +225,24 @@ export default function MemberProfile() {
   }
 
   function handleRenewTypeChange(type) {
-    const expiry = calculateExpiry(renewForm.joiningDate, type)
-    setRenewForm({ ...renewForm, membershipType: type, expiryDate: expiry })
-  }
+  const expiry = calculateExpiry(renewForm.joiningDate, type)
 
-  function handleRenewDateChange(date) {
-    const expiry = calculateExpiry(date, renewForm.membershipType)
-    setRenewForm({ ...renewForm, joiningDate: date, expiryDate: expiry })
-  }
+  setRenewForm(prev => ({
+    ...prev,
+    membershipType: type,
+    expiryDate: expiry
+  }))
+}
+
+function handleRenewDateChange(date) {
+  const expiry = calculateExpiry(date, renewForm.membershipType)
+
+  setRenewForm(prev => ({
+    ...prev,
+    joiningDate: date,
+    expiryDate: expiry
+  }))
+}
 
   async function handleRenew(e) {
     e.preventDefault()
@@ -496,22 +507,36 @@ export default function MemberProfile() {
                     )}
                     <p className="text-xs text-gray-400">{new Date(due.createdAt).toLocaleDateString('en-IN')}</p>
                   </div>
+                  
                   <div className="flex gap-2 ml-3 flex-shrink-0">
-                    {due.status !== 'paid' && (
-                      <button
-                        onClick={() => { setShowPayDue(due); setPayAmount(String(due.amount - due.paidAmount)) }}
-                        className="bg-green-500 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-green-600"
-                      >
-                        Pay
-                      </button>
-                    )}
-                    <button
-                      onClick={() => deleteDue(due._id)}
-                      className="border border-red-200 text-red-500 text-xs px-2 py-1.5 rounded-lg hover:bg-red-50"
-                    >
-                      Del
-                    </button>
-                  </div>
+  {due.status !== 'paid' && (
+    <>
+      <button
+        onClick={() => {
+          const message = `Hi ${due.memberName},\n\nYou have a pending due of Rs.${due.amount - due.paidAmount} at our gym.\n${due.note ? `Note: ${due.note}\n` : ''}\nPlease clear your dues at the earliest.\n\nThank you!`
+          const phone = due.mobile.replace(/[^0-9]/g, '')
+          const indiaPhone = phone.startsWith('91') ? phone : `91${phone}`
+          window.open(`https://wa.me/${indiaPhone}?text=${encodeURIComponent(message)}`, '_blank')
+        }}
+        className="bg-green-500 text-white text-xs px-2 py-1.5 rounded-lg hover:bg-green-600"
+      >
+        WA
+      </button>
+      <button
+        onClick={() => { setShowPayDue(due); setPayAmount(String(due.amount - due.paidAmount)) }}
+        className="bg-blue-600 text-white text-xs px-2 py-1.5 rounded-lg hover:bg-blue-700"
+      >
+        Pay
+      </button>
+    </>
+  )}
+  <button
+    onClick={() => deleteDue(due._id)}
+    className="border border-red-200 text-red-500 text-xs px-2 py-1.5 rounded-lg hover:bg-red-50"
+  >
+    Del
+  </button>
+</div>
                 </div>
               </div>
             ))}
