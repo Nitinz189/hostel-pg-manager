@@ -29,6 +29,7 @@ function calculateExpiry(joiningDate, membershipType) {
   else if (membershipType === 'Yearly') date.setFullYear(date.getFullYear() + 1)
   return date.toISOString().split('T')[0]
 }
+
 function EditMemberForm({ member, onSave, onCancel }) {
   const [form, setForm] = useState({
     name: member.name,
@@ -40,16 +41,6 @@ function EditMemberForm({ member, onSave, onCancel }) {
     expiryDate: member.expiryDate?.split('T')[0],
     notes: member.notes || ''
   })
-
-  function calculateExpiry(joiningDate, membershipType) {
-    if (!joiningDate) return ''
-    const date = new Date(joiningDate)
-    if (membershipType === 'Monthly') date.setMonth(date.getMonth() + 1)
-    else if (membershipType === '3 Months') date.setMonth(date.getMonth() + 3)
-    else if (membershipType === '6 Months') date.setMonth(date.getMonth() + 6)
-    else if (membershipType === 'Yearly') date.setFullYear(date.getFullYear() + 1)
-    return date.toISOString().split('T')[0]
-  }
 
   return (
     <form onSubmit={e => { e.preventDefault(); onSave(form) }} className="space-y-3">
@@ -89,7 +80,7 @@ function EditMemberForm({ member, onSave, onCancel }) {
         }} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
       </div>
       <div>
-        <label className="text-sm text-gray-600 mb-1 block">Expiry Date</label>
+        <label className="text-sm text-gray-600 mb-1 block">Expiry Date <span className="text-xs text-blue-500">(auto calculated)</span></label>
         <input type="date" value={form.expiryDate} onChange={e => setForm({...form, expiryDate: e.target.value})} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500" />
       </div>
       <div>
@@ -103,39 +94,57 @@ function EditMemberForm({ member, onSave, onCancel }) {
     </form>
   )
 }
+
 export default function MemberProfile() {
-  const [showEdit, setShowEdit] = useState(false)
   const { id } = useParams()
   const { currentUser } = useAuth()
   const navigate = useNavigate()
+
   const [member, setMember] = useState(null)
+  const [payments, setPayments] = useState([])
   const [dues, setDues] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const [editingPayment, setEditingPayment] = useState(null)
+  const [editForm, setEditForm] = useState({ amount: '', month: '', status: '', paidOn: '' })
+
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [confirmPayDelete, setConfirmPayDelete] = useState(null)
+
+  const [showRenew, setShowRenew] = useState(false)
+  const [renewForm, setRenewForm] = useState({
+    membershipType: 'Monthly',
+    membershipFee: '',
+    joiningDate: new Date().toISOString().split('T')[0],
+    expiryDate: ''
+  })
+
+  const [showEdit, setShowEdit] = useState(false)
   const [showAddDue, setShowAddDue] = useState(false)
   const [showPayDue, setShowPayDue] = useState(null)
   const [dueForm, setDueForm] = useState({ amount: '', note: '' })
   const [payAmount, setPayAmount] = useState('')
-  const [payments, setPayments] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [editingPayment, setEditingPayment] = useState(null)
-  const [editForm, setEditForm] = useState({ amount: '', month: '', status: '', paidOn: '' })
-  const [confirmDelete, setConfirmDelete] = useState(null)
-  const [confirmPayDelete, setConfirmPayDelete] = useState(null)
-  const [showRenew, setShowRenew] = useState(false)
-  const [renewForm, setRenewForm] = useState({ membershipType: 'Monthly', membershipFee: '', joiningDate: new Date().toISOString().split('T')[0], expiryDate: '' })
 
   async function fetchData() {
     try {
       const [memberRes, paymentsRes] = await Promise.all([
         axios.get(`${API}/members/${id}`),
-        axios.get(`${API}/payments?ownerId=${currentUser.uid}`),
-        axios.get(`${API}/dues/member/${id}`)
+        axios.get(`${API}/payments?ownerId=${currentUser.uid}`)
       ])
       setMember(memberRes.data)
       setPayments(paymentsRes.data.filter(p => p.tenantId === id))
-      setDues(duesRes.data)
     } catch (err) {
       toast.error('Failed to load member')
     }
+
+    try {
+      const duesRes = await axios.get(`${API}/dues/member/${id}`)
+      setDues(duesRes.data)
+    } catch (err) {
+      console.log('Dues error:', err)
+      setDues([])
+    }
+
     setLoading(false)
   }
 
@@ -199,7 +208,7 @@ export default function MemberProfile() {
       setEditingPayment(null)
       fetchData()
     } catch (err) {
-      toast.error('Failed to update payment')
+      toast.error('Failed to update')
     }
   }
 
@@ -210,7 +219,7 @@ export default function MemberProfile() {
       setConfirmPayDelete(null)
       fetchData()
     } catch (err) {
-      toast.error('Failed to delete payment')
+      toast.error('Failed to delete')
     }
   }
 
@@ -253,37 +262,62 @@ export default function MemberProfile() {
     }
   }
 
+  async function addDue(e) {
+    e.preventDefault()
+    try {
+      await axios.post(`${API}/dues`, {
+        ownerId: currentUser.uid,
+        memberId: id,
+        memberName: member.name,
+        mobile: member.mobile,
+        amount: parseInt(dueForm.amount),
+        note: dueForm.note
+      })
+      toast.success('Due added!')
+      setShowAddDue(false)
+      setDueForm({ amount: '', note: '' })
+      fetchData()
+    } catch (err) {
+      toast.error('Failed to add due')
+    }
+  }
+
+  async function payDue(dueId) {
+    try {
+      await axios.put(`${API}/dues/${dueId}/pay`, { payAmount: parseInt(payAmount) })
+      toast.success('Payment recorded!')
+      setShowPayDue(null)
+      setPayAmount('')
+      fetchData()
+    } catch (err) {
+      toast.error('Failed to record payment')
+    }
+  }
+
+  async function deleteDue(dueId) {
+    try {
+      await axios.delete(`${API}/dues/${dueId}`)
+      toast.success('Due deleted!')
+      fetchData()
+    } catch (err) {
+      toast.error('Failed to delete due')
+    }
+  }
+
   function sendWhatsApp() {
     if (!member) return
     const daysLeft = getDaysLeft(member.expiryDate)
     const expiryStr = new Date(member.expiryDate).toLocaleDateString('en-IN')
     const message = daysLeft < 0
-      ? `Hi ${member.name},\n\nYour GYMmitra membership expired on ${expiryStr}.\n\nReg No: ${member.registrationNumber}\nMembership: ${member.membershipType}\nRenewal Fee: Rs.${member.membershipFee}\n\nPlease renew to continue your fitness journey!\n\nThank you!`
-      : `Hi ${member.name},\n\nYour GYMmitra membership expires in ${daysLeft} days on ${expiryStr}.\n\nReg No: ${member.registrationNumber}\nMembership: ${member.membershipType}\nRenewal Fee: Rs.${member.membershipFee}\n\nPlease renew on time!\n\nThank you!`
+      ? `Hi ${member.name},\n\nYour gym membership expired on ${expiryStr}.\n\nReg No: ${member.registrationNumber}\nMembership: ${member.membershipType}\nRenewal Fee: Rs.${member.membershipFee}\n\nPlease renew to continue!\n\nThank you!`
+      : `Hi ${member.name},\n\nYour gym membership expires in ${daysLeft} days on ${expiryStr}.\n\nReg No: ${member.registrationNumber}\nMembership: ${member.membershipType}\nRenewal Fee: Rs.${member.membershipFee}\n\nPlease renew on time!\n\nThank you!`
     const phone = member.mobile.replace(/[^0-9]/g, '')
     const indiaPhone = phone.startsWith('91') ? phone : `91${phone}`
     window.open(`https://wa.me/${indiaPhone}?text=${encodeURIComponent(message)}`, '_blank')
   }
 
-  if (loading) {
-    return (
-      <div className="p-4 md:p-6 animate-pulse">
-        <div className="h-8 bg-gray-100 rounded w-48 mb-4"></div>
-        <div className="bg-white rounded-2xl p-6 border border-gray-100 h-48"></div>
-      </div>
-    )
-  }
-
-  if (!member) return (
-    <div className="p-6 text-center text-gray-400">
-      <p className="text-4xl mb-2">💪</p>
-      <p>Member not found</p>
-      <button onClick={() => navigate('/members')} className="mt-4 text-blue-600 text-sm">Back to Members</button>
-    </div>
-  )
-
-  const daysLeft = getDaysLeft(member.expiryDate)
   const totalPaid = payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0)
+  const totalPendingDue = dues.filter(d => d.status !== 'paid').reduce((sum, d) => sum + (d.amount - d.paidAmount), 0)
 
   const statusBadge = {
     active: 'bg-green-100 text-green-700',
@@ -291,58 +325,39 @@ export default function MemberProfile() {
     expired: 'bg-red-100 text-red-700',
     inactive: 'bg-gray-100 text-gray-500'
   }
-
-  const statusLabel = { active: 'Active', due_soon: 'Expiring Soon', expired: 'Expired', inactive: 'Inactive' }
-
-  // due model lines
-  async function addDue(e) {
-  e.preventDefault()
-  try {
-    await axios.post(`${API}/dues`, {
-      ownerId: currentUser.uid,
-      memberId: id,
-      memberName: member.name,
-      mobile: member.mobile,
-      amount: parseInt(dueForm.amount),
-      note: dueForm.note
-    })
-    toast.success('Due added!')
-    setShowAddDue(false)
-    setDueForm({ amount: '', note: '' })
-    fetchData()
-  } catch (err) {
-    toast.error('Failed to add due')
+  const statusLabel = {
+    active: 'Active',
+    due_soon: 'Expiring Soon',
+    expired: 'Expired',
+    inactive: 'Inactive'
   }
-}
 
-async function payDue(dueId) {
-  try {
-    await axios.put(`${API}/dues/${dueId}/pay`, {
-      payAmount: parseInt(payAmount)
-    })
-    toast.success('Payment recorded!')
-    setShowPayDue(null)
-    setPayAmount('')
-    fetchData()
-  } catch (err) {
-    toast.error('Failed to record payment')
+  if (loading) {
+    return (
+      <div className="p-4 md:p-6 pb-24 md:pb-6 animate-pulse">
+        <div className="h-8 bg-gray-100 rounded w-48 mb-4"></div>
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 h-48 mb-4"></div>
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 h-32"></div>
+      </div>
+    )
   }
-}
 
-async function deleteDue(dueId) {
-  try {
-    await axios.delete(`${API}/dues/${dueId}`)
-    toast.success('Due deleted!')
-    fetchData()
-  } catch (err) {
-    toast.error('Failed to delete due')
-  }
-}
+  if (!member) return (
+    <div className="p-6 text-center text-gray-400 pb-24">
+      <p className="text-4xl mb-2">💪</p>
+      <p>Member not found</p>
+      <button onClick={() => navigate('/members')} className="mt-4 text-blue-600 text-sm">Back to Members</button>
+    </div>
+  )
+
+  const daysLeft = getDaysLeft(member.expiryDate)
+
   return (
     <div className="p-4 md:p-6 pb-24 md:pb-6 max-w-3xl mx-auto">
+
       {confirmDelete && (
         <ConfirmModal
-          message={`Delete ${member.name}? All their data including payment history will be permanently deleted.`}
+          message={`Delete ${member.name}? All their data will be permanently deleted.`}
           onConfirm={deleteMember}
           onCancel={() => setConfirmDelete(false)}
         />
@@ -355,53 +370,38 @@ async function deleteDue(dueId) {
         />
       )}
 
-      <button onClick={() => navigate('/members')} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4">
+      <button onClick={() => navigate('/members')} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4 transition">
         ← Back to Members
       </button>
 
       {/* Member Card */}
-      <div className="bg-white border border-gray-100 rounded-2xl p-6 mb-4">
-        <div className="flex items-start justify-between flex-wrap gap-4 mb-4">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center text-xl font-bold text-blue-600">
+      <div className="bg-white border border-gray-100 rounded-2xl p-5 mb-4">
+        <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-lg font-bold text-blue-600">
               {member.name.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-gray-800">{member.name}</h1>
-              <p className="text-gray-500 text-sm">Reg: {member.registrationNumber}</p>
+              <h1 className="text-lg font-semibold text-gray-800">{member.name}</h1>
+              <p className="text-gray-400 text-xs">Reg: {member.registrationNumber}</p>
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block ${statusBadge[member.status]}`}>
                 {statusLabel[member.status]}
               </span>
             </div>
           </div>
-
-          {/* Action buttons */}
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => {setShowEdit(true)}}className="border border-blue-200 text-blue-600 px-3 py-2 rounded-xl text-xs font-medium hover:bg-blue-50 transition">Edit</button>
-            <button onClick={sendWhatsApp} className="bg-green-500 text-white px-3 py-2 rounded-xl text-xs font-medium hover:bg-green-600 transition">
-              WhatsApp
-            </button>
-            <button
-              onClick={toggleStatus}
-              className={`px-3 py-2 rounded-xl text-xs font-medium transition border ${
-                member.status === 'inactive'
-                  ? 'border-green-200 text-green-600 hover:bg-green-50'
-                  : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-              }`}
-            >
+            <button onClick={() => setShowEdit(true)} className="border border-gray-200 text-gray-600 px-3 py-1.5 rounded-xl text-xs font-medium hover:bg-gray-50">Edit</button>
+            <button onClick={sendWhatsApp} className="bg-green-500 text-white px-3 py-1.5 rounded-xl text-xs font-medium hover:bg-green-600">WhatsApp</button>
+            <button onClick={toggleStatus} className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition ${member.status === 'inactive' ? 'border-green-200 text-green-600 hover:bg-green-50' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
               {member.status === 'inactive' ? 'Mark Active' : 'Mark Inactive'}
             </button>
-            <button onClick={() => setShowRenew(true)} className="bg-blue-600 text-white px-3 py-2 rounded-xl text-xs font-medium hover:bg-blue-700 transition">
-              Renew
-            </button>
-            <button onClick={() => setConfirmDelete(true)} className="border border-red-200 text-red-500 px-3 py-2 rounded-xl text-xs font-medium hover:bg-red-50 transition">
-              Delete
-            </button>
+            <button onClick={() => setShowRenew(true)} className="bg-blue-600 text-white px-3 py-1.5 rounded-xl text-xs font-medium hover:bg-blue-700">Renew</button>
+            <button onClick={() => setConfirmDelete(true)} className="border border-red-200 text-red-500 px-3 py-1.5 rounded-xl text-xs font-medium hover:bg-red-50">Delete</button>
           </div>
         </div>
 
         {/* Expiry countdown */}
-        <div className={`rounded-xl p-4 mb-4 ${
+        <div className={`rounded-xl p-3 mb-4 ${
           member.status === 'inactive' ? 'bg-gray-50 border border-gray-100' :
           daysLeft < 0 ? 'bg-red-50 border border-red-100' :
           daysLeft <= 7 ? 'bg-yellow-50 border border-yellow-100' :
@@ -418,7 +418,7 @@ async function deleteDue(dueId) {
              daysLeft === 0 ? 'Expires today!' :
              `${daysLeft} days left in membership`}
           </p>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-gray-400 mt-0.5">
             Expires: {new Date(member.expiryDate).toLocaleDateString('en-IN')}
           </p>
         </div>
@@ -448,150 +448,82 @@ async function deleteDue(dueId) {
         )}
       </div>
 
-      {/* Due Section */}
-<div className="bg-white border border-gray-100 rounded-2xl p-5 mb-4">
-  <div className="flex items-center justify-between mb-4">
-    <div>
-      <h2 className="text-sm font-bold text-gray-700">Due Payments</h2>
-      <p className="text-xs text-gray-400">
-        Total pending: ₹{dues.filter(d => d.status !== 'paid').reduce((sum, d) => sum + (d.amount - d.paidAmount), 0).toLocaleString()}
-      </p>
-    </div>
-    <button
-      onClick={() => setShowAddDue(true)}
-      className="bg-red-500 text-white text-xs px-3 py-2 rounded-xl hover:bg-red-600 transition font-medium"
-    >
-      + Add Due
-    </button>
-  </div>
-
-  {dues.length === 0 ? (
-    <div className="text-center py-6 text-gray-400">
-      <p className="text-2xl mb-1">✅</p>
-      <p className="text-sm">No dues pending</p>
-    </div>
-  ) : (
-    <div className="space-y-2">
-      {dues.map(due => (
-        <div key={due._id} className={`rounded-xl p-3 border ${
-          due.status === 'paid' ? 'bg-green-50 border-green-100' :
-          due.status === 'partial' ? 'bg-orange-50 border-orange-100' :
-          'bg-red-50 border-red-100'
-        }`}>
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <p className="text-sm font-semibold text-gray-800">
-                  ₹{due.amount.toLocaleString()}
-                </p>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                  due.status === 'paid' ? 'bg-green-100 text-green-700' :
-                  due.status === 'partial' ? 'bg-orange-100 text-orange-700' :
-                  'bg-red-100 text-red-700'
-                }`}>
-                  {due.status === 'paid' ? 'Paid' : due.status === 'partial' ? 'Partial' : 'Pending'}
-                </span>
-              </div>
-              {due.note && <p className="text-xs text-gray-500 mb-1">{due.note}</p>}
-              {due.status === 'partial' && (
-                <p className="text-xs text-orange-600">
-                  Paid: ₹{due.paidAmount} — Remaining: ₹{due.amount - due.paidAmount}
-                </p>
-              )}
-              <p className="text-xs text-gray-400">
-                Added: {new Date(due.createdAt).toLocaleDateString('en-IN')}
-              </p>
-            </div>
-            <div className="flex gap-2 flex-shrink-0">
-              {due.status !== 'paid' && (
-                <button
-                  onClick={() => { setShowPayDue(due); setPayAmount(String(due.amount - due.paidAmount)) }}
-                  className="bg-green-500 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-green-600"
-                >
-                  Pay
-                </button>
-              )}
-              <button
-                onClick={() => deleteDue(due._id)}
-                className="border border-red-200 text-red-500 text-xs px-2 py-1.5 rounded-lg hover:bg-red-50"
-              >
-                Del
-              </button>
-            </div>
+      {/* Due Payments Section */}
+      <div className="bg-white border border-gray-100 rounded-2xl p-5 mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-sm font-bold text-gray-700">Due Payments</h2>
+            <p className="text-xs text-gray-400">
+              Total pending: ₹{totalPendingDue.toLocaleString()}
+            </p>
           </div>
+          <button
+            onClick={() => setShowAddDue(true)}
+            className="bg-red-500 text-white text-xs px-3 py-2 rounded-xl hover:bg-red-600 font-medium"
+          >
+            + Add Due
+          </button>
         </div>
-      ))}
-    </div>
-  )}
-</div>
 
-{/* Add Due Modal */}
-{showAddDue && (
-  <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-    <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
-      <h2 className="text-base font-semibold text-gray-800 mb-4">Add Due — {member.name}</h2>
-      <form onSubmit={addDue} className="space-y-3">
-        <div>
-          <label className="text-sm text-gray-600 mb-1 block">Due Amount (₹)</label>
-          <input
-            required
-            type="number"
-            value={dueForm.amount}
-            onChange={e => setDueForm({...dueForm, amount: e.target.value})}
-            placeholder="Enter amount"
-            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
-          />
-        </div>
-        <div>
-          <label className="text-sm text-gray-600 mb-1 block">Note (optional)</label>
-          <input
-            value={dueForm.note}
-            onChange={e => setDueForm({...dueForm, note: e.target.value})}
-            placeholder="e.g. Monthly fee, Half payment"
-            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
-          />
-        </div>
-        <div className="flex gap-2 pt-1">
-          <button type="button" onClick={() => setShowAddDue(false)} className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm">Cancel</button>
-          <button type="submit" className="flex-1 bg-red-500 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-red-600">Add Due</button>
-        </div>
-      </form>
-    </div>
-  </div>
-)}
-
-{/* Pay Due Modal */}
-{showPayDue && (
-  <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-    <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
-      <h2 className="text-base font-semibold text-gray-800 mb-1">Record Payment</h2>
-      <p className="text-xs text-gray-400 mb-4">
-        Total due: ₹{showPayDue.amount} — Remaining: ₹{showPayDue.amount - showPayDue.paidAmount}
-      </p>
-      <div className="space-y-3">
-        <div>
-          <label className="text-sm text-gray-600 mb-1 block">Amount Received (₹)</label>
-          <input
-            type="number"
-            value={payAmount}
-            onChange={e => setPayAmount(e.target.value)}
-            placeholder="Enter received amount"
-            max={showPayDue.amount - showPayDue.paidAmount}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-          />
-        </div>
-        <div className="flex gap-2 pt-1">
-          <button onClick={() => setShowPayDue(null)} className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm">Cancel</button>
-          <button onClick={() => payDue(showPayDue._id)} className="flex-1 bg-green-500 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-green-600">Mark Paid</button>
-        </div>
+        {dues.length === 0 ? (
+          <div className="text-center py-6 text-gray-400">
+            <p className="text-2xl mb-1">✅</p>
+            <p className="text-sm">No dues pending</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {dues.map(due => (
+              <div key={due._id} className={`rounded-xl p-3 border ${
+                due.status === 'paid' ? 'bg-green-50 border-green-100' :
+                due.status === 'partial' ? 'bg-orange-50 border-orange-100' :
+                'bg-red-50 border-red-100'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-sm font-semibold text-gray-800">₹{due.amount.toLocaleString()}</p>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        due.status === 'paid' ? 'bg-green-100 text-green-700' :
+                        due.status === 'partial' ? 'bg-orange-100 text-orange-700' :
+                        'bg-red-100 text-red-700'
+                      }`}>
+                        {due.status === 'paid' ? 'Paid' : due.status === 'partial' ? 'Partial' : 'Pending'}
+                      </span>
+                    </div>
+                    {due.note && <p className="text-xs text-gray-500 mb-1">{due.note}</p>}
+                    {due.status === 'partial' && (
+                      <p className="text-xs text-orange-600">Paid: ₹{due.paidAmount} — Remaining: ₹{due.amount - due.paidAmount}</p>
+                    )}
+                    <p className="text-xs text-gray-400">{new Date(due.createdAt).toLocaleDateString('en-IN')}</p>
+                  </div>
+                  <div className="flex gap-2 ml-3 flex-shrink-0">
+                    {due.status !== 'paid' && (
+                      <button
+                        onClick={() => { setShowPayDue(due); setPayAmount(String(due.amount - due.paidAmount)) }}
+                        className="bg-green-500 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-green-600"
+                      >
+                        Pay
+                      </button>
+                    )}
+                    <button
+                      onClick={() => deleteDue(due._id)}
+                      className="border border-red-200 text-red-500 text-xs px-2 py-1.5 rounded-lg hover:bg-red-50"
+                    >
+                      Del
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-    </div>
-  </div>
-)}
 
       {/* Payment History */}
       <div className="bg-white border border-gray-100 rounded-2xl p-5">
-        <h2 className="text-sm font-semibold text-gray-700 mb-4">Payment History ({payments.length} records)</h2>
+        <h2 className="text-sm font-semibold text-gray-700 mb-4">
+          Payment History ({payments.length} records)
+        </h2>
         {payments.length === 0 ? (
           <div className="text-center py-8 text-gray-400">
             <p className="text-3xl mb-2">💳</p>
@@ -654,6 +586,70 @@ async function deleteDue(dueId) {
         )}
       </div>
 
+      {/* Add Due Modal */}
+      {showAddDue && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+            <h2 className="text-base font-semibold text-gray-800 mb-4">Add Due — {member.name}</h2>
+            <form onSubmit={addDue} className="space-y-3">
+              <div>
+                <label className="text-sm text-gray-600 mb-1 block">Due Amount (₹)</label>
+                <input required type="number" value={dueForm.amount} onChange={e => setDueForm({...dueForm, amount: e.target.value})} placeholder="Enter amount" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+              </div>
+              <div>
+                <label className="text-sm text-gray-600 mb-1 block">Note (optional)</label>
+                <input value={dueForm.note} onChange={e => setDueForm({...dueForm, note: e.target.value})} placeholder="e.g. Monthly fee, Half payment" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => setShowAddDue(false)} className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm">Cancel</button>
+                <button type="submit" className="flex-1 bg-red-500 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-red-600">Add Due</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Pay Due Modal */}
+      {showPayDue && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+            <h2 className="text-base font-semibold text-gray-800 mb-1">Record Payment</h2>
+            <p className="text-xs text-gray-400 mb-4">
+              Total due: ₹{showPayDue.amount} — Remaining: ₹{showPayDue.amount - showPayDue.paidAmount}
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm text-gray-600 mb-1 block">Amount Received (₹)</label>
+                <input type="number" value={payAmount} onChange={e => setPayAmount(e.target.value)} placeholder="Enter received amount" max={showPayDue.amount - showPayDue.paidAmount} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => setShowPayDue(null)} className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm">Cancel</button>
+                <button onClick={() => payDue(showPayDue._id)} className="flex-1 bg-green-500 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-green-600">Mark Paid</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Member Modal */}
+      {showEdit && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Edit Member</h2>
+            <EditMemberForm
+              member={member}
+              onSave={async (form) => {
+                await axios.put(`${API}/members/${id}`, form)
+                toast.success('Member updated!')
+                setShowEdit(false)
+                fetchData()
+              }}
+              onCancel={() => setShowEdit(false)}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Renew Modal */}
       {showRenew && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
@@ -689,23 +685,6 @@ async function deleteDue(dueId) {
           </div>
         </div>
       )}
-      {showEdit && (
-  <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-    <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-      <h2 className="text-lg font-semibold text-gray-800 mb-4">Edit Member</h2>
-      <EditMemberForm
-        member={member}
-        onSave={async (form) => {
-          await axios.put(`${API}/members/${id}`, form)
-          toast.success('Member updated!')
-          setShowEdit(false)
-          fetchData()
-        }}
-        onCancel={() => setShowEdit(false)}
-      />
-    </div>
-  </div>
-)}
     </div>
   )
 }
