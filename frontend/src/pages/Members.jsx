@@ -82,17 +82,28 @@ export default function Members() {
   const [mobileError, setMobileError] = useState('')
   const [loading, setLoading] = useState(true)
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [memberDues, setMemberDues] = useState({})
 
   async function fetchMembers() {
-    setLoading(true)
-    try {
-      const res = await axios.get(`${API}/members?ownerId=${currentUser.uid}`, { timeout: 60000 })
-      setMembers(res.data)
-    } catch (err) {
-      toast.error('Failed to load members')
-    }
-    setLoading(false)
+  setLoading(true)
+  try {
+    const res = await axios.get(`${API}/members?ownerId=${currentUser.uid}`, { timeout: 60000 })
+    setMembers(res.data)
+    
+    // Fetch dues for all members
+    const duesRes = await axios.get(`${API}/dues?ownerId=${currentUser.uid}`)
+    const duesMap = {}
+    duesRes.data.forEach(due => {
+      const memberId = due.memberId
+      if (!duesMap[memberId]) duesMap[memberId] = 0
+      duesMap[memberId] += (due.amount - due.paidAmount)
+    })
+    setMemberDues(duesMap)
+  } catch (err) {
+    console.log('Error loading members:', err)
   }
+  setLoading(false)
+}
 
   useEffect(() => {
     if (currentUser) fetchMembers()
@@ -222,7 +233,7 @@ export default function Members() {
   }
 
   return (
-    <div className="p-4 md:p-6">
+    <div className="p-4 md:p-6 pb-24 md:pb-6">
       {confirmDelete && (
         <ConfirmModal
           message={`Delete ${confirmDelete.name}? This cannot be undone.`}
@@ -333,9 +344,16 @@ export default function Members() {
                   {statusLabel[member.status]}
                 </span>
               </div>
-              <div className="flex justify-between text-xs text-gray-400 mt-2">
+              <div className="flex justify-between text-xs text-gray-400 mt-2 items-center">
                 <span>{member.membershipType}</span>
-                <span>{member.expiryDate ? new Date(member.expiryDate).toLocaleDateString('en-IN') : 'N/A'}</span>
+                <div className="flex items-center gap-2">
+                  {memberDues[member._id] > 0 && (
+                  <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full font-medium">
+                    Due ₹{memberDues[member._id]}
+                  </span>
+                )}
+                  <span>{member.expiryDate ? new Date(member.expiryDate).toLocaleDateString('en-IN') : 'N/A'}</span>
+                </div>
               </div>
             </div>
           ))}

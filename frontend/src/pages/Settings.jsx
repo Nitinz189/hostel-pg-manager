@@ -94,7 +94,7 @@ export default function Settings() {
     'text-green-600'
 
   return (
-    <div className="p-4 md:p-6 max-w-2xl">
+    <div className="p-4 md:p-6 pb-24 md:pb-6 max-w-2xl">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-gray-800">Settings</h1>
         <p className="text-gray-500 text-sm">Manage your gym profile and subscription</p>

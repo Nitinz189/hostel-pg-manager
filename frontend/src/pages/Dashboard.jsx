@@ -107,7 +107,7 @@ export default function Dashboard() {
         ) : (
           <div className="space-y-2">
             {dueData.dues.map(due => (
-              <div key={due._id} className="flex items-center justify-between bg-red-50 rounded-xl p-3">
+               <Link to={`/member/${due.memberId}`} key={due._id} className="flex items-center justify-between bg-red-50 rounded-xl p-3 hover:bg-red-100 transition">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center text-xs font-bold text-red-600">
                     {due.memberName.charAt(0).toUpperCase()}
@@ -129,7 +129,7 @@ export default function Dashboard() {
                     WA
                   </button>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

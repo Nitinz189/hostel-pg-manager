@@ -168,7 +168,7 @@ export default function AdminPanel() {
   }, []).slice(-6)
 
   return (
-    <div className="p-4 md:p-6">
+    <div className="p-4 md:p-6 pb-24 md:pb-6">
       {confirmAction && (
         <ConfirmModal
           message={confirmAction.message}

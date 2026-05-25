@@ -339,7 +339,7 @@ async function deleteDue(dueId) {
   }
 }
   return (
-    <div className="p-4 md:p-6 max-w-3xl mx-auto">
+    <div className="p-4 md:p-6 pb-24 md:pb-6 max-w-3xl mx-auto">
       {confirmDelete && (
         <ConfirmModal
           message={`Delete ${member.name}? All their data including payment history will be permanently deleted.`}

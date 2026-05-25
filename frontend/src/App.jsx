@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Dashboard from './pages/Dashboard'
@@ -41,6 +43,20 @@ function DesktopSidebar() {
   const { currentUser, logout } = useAuth()
   const location = useLocation()
   const isAdmin = currentUser?.email === 'vnitin398@gmail.com'
+  const [gymName, setGymName] = useState('GYMmitra')
+
+  useEffect(() => {
+    async function fetchGymName() {
+      if (!currentUser) return
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/owner/${currentUser.uid}`)
+        if (res.data.propertyName) setGymName(res.data.propertyName)
+      } catch (err) {
+        console.log(err)
+      }
+    }
+    fetchGymName()
+  }, [currentUser])
 
   const links = [
     { to: '/dashboard', icon: '📊', label: 'Dashboard' },
@@ -57,7 +73,7 @@ function DesktopSidebar() {
         <div className="flex items-center gap-2">
           <span className="text-2xl">💪</span>
           <div>
-            <h1 className="text-sm font-bold text-white">GYMmitra</h1>
+            <h1 className="text-sm font-bold text-white truncate max-w-36">{gymName}</h1>
             <p className="text-xs text-blue-200 truncate max-w-36">{currentUser?.email}</p>
           </div>
         </div>
@@ -92,7 +108,8 @@ function DesktopSidebar() {
 
 function MobileBottomNav() {
   const location = useLocation()
-  const { logout } = useAuth()
+  const { logout, currentUser } = useAuth()
+  const isAdmin = currentUser?.email === 'vnitin398@gmail.com'
 
   const tabs = [
     { to: '/dashboard', icon: '📊', label: 'Home' },
@@ -102,22 +119,21 @@ function MobileBottomNav() {
   ]
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50 safe-area-pb">
-      <div className="flex items-center justify-around px-2 py-2">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      <div className="flex items-center justify-around px-1 py-1">
         {tabs.map(tab => (
           <Link
             key={tab.to}
             to={tab.to}
-            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
-              location.pathname === tab.to
-                ? 'text-blue-600'
-                : 'text-gray-400'
+            className={`flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0 flex-1 ${
+              location.pathname === tab.to ? 'text-blue-600' : 'text-gray-400'
             }`}
           >
-            <span className={`text-xl transition-transform ${location.pathname === tab.to ? 'scale-110' : ''}`}>
+            <span className={`text-xl ${location.pathname === tab.to ? 'scale-110' : ''} transition-transform`}>
               {tab.icon}
             </span>
-            <span className={`text-xs font-medium ${location.pathname === tab.to ? 'text-blue-600' : 'text-gray-400'}`}>
+            <span className={`text-xs font-medium truncate ${location.pathname === tab.to ? 'text-blue-600' : 'text-gray-400'}`}>
               {tab.label}
             </span>
             {location.pathname === tab.to && (
@@ -125,6 +141,13 @@ function MobileBottomNav() {
             )}
           </Link>
         ))}
+        <button
+          onClick={logout}
+          className="flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0 flex-1 text-red-400"
+        >
+          <span className="text-xl">🚪</span>
+          <span className="text-xs font-medium">Logout</span>
+        </button>
       </div>
     </div>
   )
@@ -133,6 +156,20 @@ function MobileBottomNav() {
 function MobileTopBar() {
   const { currentUser } = useAuth()
   const location = useLocation()
+  const [gymName, setGymName] = useState('GYMmitra')
+
+  useEffect(() => {
+    async function fetchGymName() {
+      if (!currentUser) return
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/owner/${currentUser.uid}`)
+        if (res.data.propertyName) setGymName(res.data.propertyName)
+      } catch (err) {
+        console.log(err)
+      }
+    }
+    fetchGymName()
+  }, [currentUser])
 
   const titles = {
     '/dashboard': 'Dashboard',
@@ -142,7 +179,7 @@ function MobileTopBar() {
     '/admin': 'Admin Panel',
   }
 
-  const title = titles[location.pathname] || 'GYMmitra'
+  const title = titles[location.pathname] || gymName
 
   return (
     <div className="md:hidden bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
@@ -150,7 +187,7 @@ function MobileTopBar() {
         <span className="text-lg">💪</span>
         <span className="text-sm font-bold text-blue-600">{title}</span>
       </div>
-      <p className="text-xs text-gray-400 truncate max-w-32">{currentUser?.email?.split('@')[0]}</p>
+      <p className="text-xs text-gray-400 truncate max-w-32">{gymName}</p>
     </div>
   )
 }
