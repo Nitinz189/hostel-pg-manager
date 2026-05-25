@@ -136,8 +136,7 @@ export default function Signup() {
           Already have access?{' '}
           <Link to="/login" className="text-blue-600 hover:underline">Login</Link>
         </p>
-      </div>
-      <div className="mt-6 pt-4 border-t border-gray-100 text-center">
+        <div className="mt-6 pt-4 border-t border-gray-100 text-center">
   <p className="text-xs text-gray-400">
     By using GYMmitra you agree to our{' '}
     <Link to="/terms" className="text-blue-500 hover:underline">Terms of Service</Link>
@@ -145,6 +144,9 @@ export default function Signup() {
     <Link to="/privacy" className="text-blue-500 hover:underline">Privacy Policy</Link>
   </p>
 </div>
+      </div>
+      
+        
     </div>
   )
 }
