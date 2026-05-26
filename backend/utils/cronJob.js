@@ -3,6 +3,7 @@ import Member from '../models/Member.js'
 import Notification from '../models/Notification.js'
 
 export function startCronJob() {
+  checkMemberships()
   cron.schedule('0 8 * * *', async () => {
     await checkMemberships()
   })
