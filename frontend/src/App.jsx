@@ -120,7 +120,7 @@ function MobileBottomNav() {
     { to: '/dashboard', img: '/dashboard.png', label: 'Home' },
     { to: '/members', img: '/team.png', label: 'Members' },
     { to: '/revenue', img: '/revenue.png', label: 'Revenue' },
-    { to: '/settings', img: '/settings.png', label: 'Settings' },
+    { to: '/settings', icon: '⚙️', label: 'Settings', img:null },
   ]
 
   if (!currentUser) return null
