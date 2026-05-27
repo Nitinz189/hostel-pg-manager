@@ -151,6 +151,7 @@ function MobileBottomNav() {
 }
 
 function MobileTopBar() {
+  const { currentUser } = useAuth()
   const location = useLocation()
   const [gymName, setGymName] = useState('GYMmitra')
 
