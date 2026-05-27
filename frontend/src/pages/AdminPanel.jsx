@@ -38,6 +38,7 @@ export default function AdminPanel() {
   const [addRevenueModal, setAddRevenueModal] = useState(false)
   const [revenueForm, setRevenueForm] = useState({ gymmitraId: '', gymName: '', amount: '', planMonths: '', notes: '' })
 
+  const navigate = useNavigate()
   const isAdmin = currentUser?.email === ADMIN_EMAIL
 
   async function fetchAll() {
