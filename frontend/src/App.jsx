@@ -111,7 +111,6 @@ function DesktopSidebar() {
 
 function MobileBottomNav() {
   const location = useLocation()
-  const { logout, currentUser } = useAuth()
   const isAdmin = currentUser?.email === 'vnitin398@gmail.com'
 
   const tabs = [
@@ -125,39 +124,32 @@ function MobileBottomNav() {
     <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
       <div className="flex items-center justify-around px-1 py-1">
-        {tabs.map(tab => (
-          <Link
-            key={tab.to}
-            to={tab.to}
-            className={`flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0 flex-1 ${
-              location.pathname === tab.to ? 'text-blue-600' : 'text-gray-400'
-            }`}
-          >
-            <span className={`text-xl ${location.pathname === tab.to ? 'scale-110' : ''} transition-transform`}>
-              {tab.icon}
-            </span>
-            <span className={`text-xs font-medium truncate ${location.pathname === tab.to ? 'text-blue-600' : 'text-gray-400'}`}>
-              {tab.label}
-            </span>
-            {location.pathname === tab.to && (
-              <div className="w-1 h-1 bg-blue-600 rounded-full"></div>
-            )}
-          </Link>
-        ))}
-        <button
-          onClick={logout}
-          className="flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0 flex-1 text-red-400"
-        >
-          <span className="text-xl">🚪</span>
-          <span className="text-xs font-medium">Logout</span>
-        </button>
+        {tabs.map(tab => {
+          const isActive = location.pathname === tab.to
+          return (
+            <Link
+              key={tab.to}
+              to={tab.to}
+              className={`flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0 flex-1 ${
+                isActive ? 'text-blue-600' : 'text-gray-400'
+              }`}
+            >
+              <span className={`text-xl transition-transform ${isActive ? 'scale-110' : ''}`}>
+                {tab.icon}
+              </span>
+              <span className={`text-xs font-medium truncate ${isActive ? 'text-blue-600' : 'text-gray-400'}`}>
+                {tab.label}
+              </span>
+              {isActive && <div className="w-1 h-1 bg-blue-600 rounded-full"></div>}
+            </Link>
+          )
+        })}
       </div>
     </div>
   )
 }
 
 function MobileTopBar() {
-  const { currentUser } = useAuth()
   const location = useLocation()
   const [gymName, setGymName] = useState('GYMmitra')
 

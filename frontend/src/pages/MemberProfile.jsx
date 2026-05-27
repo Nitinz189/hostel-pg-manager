@@ -387,29 +387,58 @@ function handleRenewDateChange(date) {
 
       {/* Member Card */}
       <div className="bg-white border border-gray-100 rounded-2xl p-5 mb-4">
-        <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-lg font-bold text-blue-600">
-              {member.name.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold text-gray-800">{member.name}</h1>
-              <p className="text-gray-400 text-xs">Reg: {member.registrationNumber}</p>
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block ${statusBadge[member.status]}`}>
-                {statusLabel[member.status]}
-              </span>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => setShowEdit(true)} className="border border-gray-200 text-gray-600 px-3 py-1.5 rounded-xl text-xs font-medium hover:bg-gray-50">Edit</button>
-            <button onClick={sendWhatsApp} className="bg-green-500 text-white px-3 py-1.5 rounded-xl text-xs font-medium hover:bg-green-600">WhatsApp</button>
-            <button onClick={toggleStatus} className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition ${member.status === 'inactive' ? 'border-green-200 text-green-600 hover:bg-green-50' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-              {member.status === 'inactive' ? 'Mark Active' : 'Mark Inactive'}
-            </button>
-            <button onClick={() => setShowRenew(true)} className="bg-blue-600 text-white px-3 py-1.5 rounded-xl text-xs font-medium hover:bg-blue-700">Renew</button>
-            <button onClick={() => setConfirmDelete(true)} className="border border-red-200 text-red-500 px-3 py-1.5 rounded-xl text-xs font-medium hover:bg-red-50">Delete</button>
-          </div>
-        </div>
+        <div className="flex flex-col gap-3 mb-4">
+  <div className="flex items-center gap-3">
+    <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-lg font-bold text-blue-600">
+      {member.name.charAt(0).toUpperCase()}
+    </div>
+    <div>
+      <h1 className="text-lg font-semibold text-gray-800">{member.name}</h1>
+      <p className="text-gray-400 text-xs">Reg: {member.registrationNumber}</p>
+      <span className={`text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block ${statusBadge[member.status]}`}>
+        {statusLabel[member.status]}
+      </span>
+    </div>
+  </div>
+  <div className="w-full space-y-2">
+    <button
+      onClick={() => setShowRenew(true)}
+      className="w-full bg-blue-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition"
+    >
+      🔄 Renew Membership
+    </button>
+    <div className="grid grid-cols-3 gap-2">
+      <button
+        onClick={sendWhatsApp}
+        className="flex items-center justify-center gap-1 border border-green-300 text-green-600 py-2 rounded-xl text-xs font-medium hover:bg-green-50 transition"
+      >
+        💬 WhatsApp
+      </button>
+      <button
+        onClick={() => setShowEdit(true)}
+        className="border border-gray-200 text-gray-600 py-2 rounded-xl text-xs font-medium hover:bg-gray-50 transition"
+      >
+        ✏️ Edit
+      </button>
+      <button
+        onClick={toggleStatus}
+        className={`py-2 rounded-xl text-xs font-medium border transition ${
+          member.status === 'inactive'
+            ? 'border-green-200 text-green-600 hover:bg-green-50'
+            : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+        }`}
+      >
+        {member.status === 'inactive' ? '✅ Activate' : '⏸ Inactive'}
+      </button>
+    </div>
+    <button
+      onClick={() => setConfirmDelete(true)}
+      className="w-full border border-red-100 text-red-400 py-2 rounded-xl text-xs font-medium hover:bg-red-50 transition"
+    >
+      🗑 Delete Member
+    </button>
+  </div>
+</div>
 
         {/* Expiry countdown */}
         <div className={`rounded-xl p-3 mb-4 ${

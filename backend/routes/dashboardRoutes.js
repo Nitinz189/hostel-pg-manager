@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
     sevenDaysLater.setHours(23, 59, 59, 999)
 
     const totalMembers = await Member.countDocuments({ ownerId })
-    const activeMembers = await Member.countDocuments({ ownerId, status: 'active' })
+    const activeMembers = await Member.countDocuments({ ownerId, status: { $in: ['active', 'due_soon'] } })
     const inactiveMembers = await Member.countDocuments({ ownerId, status: 'inactive' })
     const expiredMembers = await Member.countDocuments({ ownerId, status: 'expired' })
     const dueSoonMembers = await Member.countDocuments({ ownerId, status: 'due_soon' })

@@ -82,7 +82,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-4 md:p-6 pb-24 md:pb-6">
+    <div className="p-4 md:p-6 pb-32 md:pb-6">
       <div className="mb-5">
         <h1 className="text-xl font-bold text-gray-800">Dashboard</h1>
         <p className="text-gray-400 text-xs">Welcome to GYMmitra</p>
@@ -142,7 +142,7 @@ export default function Dashboard() {
                       {member.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-700">{member.name}</p>
+                      <p className="text-sm font-medium text-gray-700 capitalize">{member.name}</p>
                       <p className="text-xs text-gray-400">#{member.registrationNumber}</p>
                     </div>
                   </div>
@@ -186,7 +186,7 @@ export default function Dashboard() {
                     <div className="w-7 h-7 bg-red-100 rounded-full flex items-center justify-center text-xs font-bold text-red-600">
                       {member.name.charAt(0).toUpperCase()}
                     </div>
-                    <p className="text-sm font-medium text-gray-700">{member.name}</p>
+                    <p className="text-sm font-medium text-gray-700 capitalize">{member.name}</p>
                   </div>
                   <p className="text-xs text-gray-400">
                     {new Date(member.expiryDate).toLocaleDateString('en-IN')}

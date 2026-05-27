@@ -16,13 +16,14 @@ const INDIAN_STATES = [
 ]
 
 export default function Settings() {
-  const { currentUser } = useAuth()
+  const { currentUser, logout } = useAuth()
   const [profile, setProfile] = useState({
     name: '', mobile: '', propertyName: '', upiId: '',
     address: { state: '', city: '', pincode: '' }
   })
   const [subscription, setSubscription] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   useEffect(() => {
     async function fetchProfile() {
@@ -94,7 +95,7 @@ export default function Settings() {
     'text-green-600'
 
   return (
-    <div className="p-4 md:p-6 pb-24 md:pb-6 max-w-2xl">
+    <div className="p-4 md:p-6 pb-32 md:pb-6 max-w-2xl">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-gray-800">Settings</h1>
         <p className="text-gray-500 text-sm">Manage your gym profile and subscription</p>
@@ -115,7 +116,18 @@ export default function Settings() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {/* Status card — full width */}
+          <div className="bg-gray-50 rounded-xl p-3 mb-3">
+            <p className="text-xs text-gray-400 mb-1">Status</p>
+            <p className={`text-sm font-semibold ${daysColor}`}>
+              {subscription.daysLeft === null ? 'No plan set' :
+               subscription.daysLeft < 0 ? 'Expired' :
+               `${subscription.daysLeft} days left`}
+            </p>
+          </div>
+
+          {/* 2x2 grid for remaining 4 metrics */}
+          <div className="grid grid-cols-2 gap-3">
             <div className="bg-gray-50 rounded-xl p-3">
               <p className="text-xs text-gray-400 mb-1">Plan</p>
               <span className={`text-xs font-semibold px-2 py-1 rounded-full capitalize ${planColors[subscription.plan]}`}>
@@ -126,14 +138,6 @@ export default function Settings() {
               <p className="text-xs text-gray-400 mb-1">Member Limit</p>
               <p className="text-sm font-semibold text-gray-700">
                 {subscription.memberLimit >= 999 ? 'Unlimited' : subscription.memberLimit}
-              </p>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-3">
-              <p className="text-xs text-gray-400 mb-1">Status</p>
-              <p className={`text-sm font-semibold ${daysColor}`}>
-                {subscription.daysLeft === null ? 'No plan set' :
-                 subscription.daysLeft < 0 ? 'Expired' :
-                 `${subscription.daysLeft} days left`}
               </p>
             </div>
             {subscription.planStartDate && (
@@ -172,19 +176,28 @@ export default function Settings() {
         <form onSubmit={handleSave} className="space-y-3">
           <div>
             <label className="text-sm text-gray-600 mb-1 block">Owner Name</label>
-            <input value={profile.name} onChange={e => setProfile({...profile, name: e.target.value})} placeholder="Your full name" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input value={profile.name} onChange={e => setProfile({...profile, name: e.target.value})} placeholder="Your full name" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
           </div>
           <div>
             <label className="text-sm text-gray-600 mb-1 block">Gym Name</label>
-            <input value={profile.propertyName} onChange={e => setProfile({...profile, propertyName: e.target.value})} placeholder="e.g. Power Fitness Gym" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input value={profile.propertyName} onChange={e => setProfile({...profile, propertyName: e.target.value})} placeholder="e.g. Power Fitness Gym" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
           </div>
           <div>
             <label className="text-sm text-gray-600 mb-1 block">Mobile Number</label>
-            <input value={profile.mobile} onChange={e => setProfile({...profile, mobile: e.target.value})} placeholder="Your mobile number" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input
+              value={profile.mobile}
+              onChange={e => {
+                const val = e.target.value.replace(/[^0-9]/g, '').substring(0, 10)
+                setProfile({...profile, mobile: val})
+              }}
+              placeholder="10 digit mobile number"
+              maxLength={10}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            />
           </div>
           <div>
             <label className="text-sm text-gray-600 mb-1 block">UPI ID</label>
-            <input value={profile.upiId} onChange={e => setProfile({...profile, upiId: e.target.value})} placeholder="yourname@upi" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input value={profile.upiId} onChange={e => setProfile({...profile, upiId: e.target.value})} placeholder="yourname@upi" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
           </div>
 
           {/* Address */}
@@ -193,14 +206,14 @@ export default function Settings() {
             <div className="space-y-3">
               <div>
                 <label className="text-sm text-gray-600 mb-1 block">Country</label>
-                <input value="India" readOnly className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm bg-gray-50 text-gray-400 cursor-not-allowed" />
+                <input value="India" readOnly className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 text-gray-400 cursor-not-allowed" />
               </div>
               <div>
                 <label className="text-sm text-gray-600 mb-1 block">State</label>
                 <select
                   value={profile.address.state}
                   onChange={e => setProfile({...profile, address: {...profile.address, state: e.target.value}})}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 >
                   <option value="">Select state</option>
                   {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -213,7 +226,7 @@ export default function Settings() {
                     value={profile.address.city}
                     onChange={e => setProfile({...profile, address: {...profile.address, city: e.target.value}})}
                     placeholder="Enter your city"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   />
                 </div>
               )}
@@ -228,24 +241,53 @@ export default function Settings() {
                     }}
                     placeholder="6 digit pincode"
                     maxLength={6}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   />
                 </div>
               )}
             </div>
           </div>
 
-          <button type="submit" disabled={saving} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-700 transition">
+          <button type="submit" disabled={saving} className="w-full bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-700 transition">
             {saving ? 'Saving...' : 'Save Profile'}
           </button>
         </form>
       </div>
 
-      <div className="bg-white border border-gray-100 rounded-2xl p-5">
+      {/* Account Info */}
+      <div className="bg-white border border-gray-100 rounded-2xl p-5 mb-4">
         <h2 className="text-sm font-semibold text-gray-700 mb-2">Account Info</h2>
         <p className="text-sm text-gray-500">Email: {currentUser?.email}</p>
         <p className="text-xs text-gray-400 mt-1">To change your password use the forgot password option on the login page.</p>
       </div>
+
+      {/* Logout */}
+      {!showLogoutConfirm ? (
+        <button
+          onClick={() => setShowLogoutConfirm(true)}
+          className="w-full border border-red-200 text-red-500 py-3 rounded-2xl text-sm font-medium hover:bg-red-50 transition mb-4"
+        >
+          🚪 Logout
+        </button>
+      ) : (
+        <div className="bg-red-50 border border-red-100 rounded-2xl p-4 mb-4">
+          <p className="text-sm text-red-700 font-medium mb-3">Are you sure you want to logout?</p>
+          <div className="flex gap-2">
+            <button
+              onClick={logout}
+              className="flex-1 bg-red-500 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-red-600 transition"
+            >
+              Yes, Logout
+            </button>
+            <button
+              onClick={() => setShowLogoutConfirm(false)}
+              className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

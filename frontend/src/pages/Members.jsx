@@ -85,30 +85,27 @@ export default function Members() {
   const [memberDues, setMemberDues] = useState({})
 
   async function fetchMembers() {
-  setLoading(true)
-  try {
-    const res = await axios.get(`${API}/members?ownerId=${currentUser.uid}`, { timeout: 60000 })
-    setMembers(res.data)
-  } catch (err) {
-    console.log('Members fetch error:', err)
+    setLoading(true)
+    try {
+      const res = await axios.get(`${API}/members?ownerId=${currentUser.uid}`, { timeout: 60000 })
+      setMembers(res.data)
+    } catch (err) {
+      console.log('Members fetch error:', err)
+    }
+    try {
+      const duesRes = await axios.get(`${API}/dues?ownerId=${currentUser.uid}`)
+      const duesMap = {}
+      duesRes.data.forEach(due => {
+        const memberId = String(due.memberId)
+        if (!duesMap[memberId]) duesMap[memberId] = 0
+        duesMap[memberId] += (due.amount - due.paidAmount)
+      })
+      setMemberDues(duesMap)
+    } catch (err) {
+      console.log('Dues fetch error:', err)
+    }
+    setLoading(false)
   }
-
-  // Fetch dues separately
-  try {
-    const duesRes = await axios.get(`${API}/dues?ownerId=${currentUser.uid}`)
-    const duesMap = {}
-    duesRes.data.forEach(due => {
-      const memberId = String(due.memberId)
-      if (!duesMap[memberId]) duesMap[memberId] = 0
-      duesMap[memberId] += (due.amount - due.paidAmount)
-    })
-    setMemberDues(duesMap)
-  } catch (err) {
-    console.log('Dues fetch error:', err)
-  }
-
-  setLoading(false)
-}
 
   useEffect(() => {
     if (currentUser) fetchMembers()
@@ -270,47 +267,53 @@ export default function Members() {
       </div>
 
       {/* Plan distribution pills */}
-      <div className="flex gap-2 flex-wrap mb-3">
-        <button
-          onClick={() => setPlanFilter('all')}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${planFilter === 'all' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-        >
-          All ({members.length})
-        </button>
-        {Object.entries(planCounts).map(([plan, count]) => (
+      <div className="mb-4">
+        <p className="text-xs text-gray-400 font-medium mb-2 uppercase tracking-wide">Filter by Plan</p>
+        <div className="flex gap-2 flex-wrap">
           <button
-            key={plan}
-            onClick={() => setPlanFilter(planFilter === plan ? 'all' : plan)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${planFilter === plan ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+            onClick={() => setPlanFilter('all')}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${planFilter === 'all' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
           >
-            {plan} ({count})
+            All ({members.length})
           </button>
-        ))}
+          {Object.entries(planCounts).map(([plan, count]) => (
+            <button
+              key={plan}
+              onClick={() => setPlanFilter(planFilter === plan ? 'all' : plan)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${planFilter === plan ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+            >
+              {plan} ({count})
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Status tabs + search */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <input
-          type="text"
-          placeholder="Search by name, reg number, mobile..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <div className="flex gap-2">
-          {[
-            { value: 'all', label: `All (${members.length})` },
-            { value: 'active', label: `Active (${activeCount})` },
-            { value: 'inactive', label: `Inactive (${inactiveCount})` },
-          ].map(f => (
-            <button
-              key={f.value}
-              onClick={() => setStatusFilter(f.value)}
-              className={`px-3 py-2 rounded-xl text-xs font-medium transition whitespace-nowrap ${statusFilter === f.value ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
-            >
-              {f.label}
-            </button>
-          ))}
+      <div className="mb-4">
+        <p className="text-xs text-gray-400 font-medium mb-2 uppercase tracking-wide">Filter by Status</p>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input
+            type="text"
+            placeholder="Search by name, reg number, mobile..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <div className="flex gap-2">
+            {[
+              { value: 'all', label: `All (${members.length})` },
+              { value: 'active', label: `Active (${activeCount})` },
+              { value: 'inactive', label: `Inactive (${inactiveCount})` },
+            ].map(f => (
+              <button
+                key={f.value}
+                onClick={() => setStatusFilter(f.value)}
+                className={`px-3 py-2 rounded-xl text-xs font-medium transition whitespace-nowrap ${statusFilter === f.value ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -341,7 +344,7 @@ export default function Members() {
                     {member.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-800">{member.name}</p>
+                    <p className="text-sm font-semibold text-gray-800 capitalize">{member.name}</p>
                     <p className="text-xs text-gray-400">#{member.registrationNumber}</p>
                   </div>
                 </div>
@@ -353,10 +356,10 @@ export default function Members() {
                 <span>{member.membershipType}</span>
                 <div className="flex items-center gap-2">
                   {memberDues[member._id] > 0 && (
-                  <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full font-medium">
-                    Due ₹{memberDues[member._id]}
-                  </span>
-                )}
+                    <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full font-medium">
+                      Due ₹{memberDues[member._id]}
+                    </span>
+                  )}
                   <span>{member.expiryDate ? new Date(member.expiryDate).toLocaleDateString('en-IN') : 'N/A'}</span>
                 </div>
               </div>
@@ -375,7 +378,17 @@ export default function Members() {
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
                 <label className="text-sm text-gray-600 mb-1 block">Full Name</label>
-                <input required value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="Member full name" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <input
+                  required
+                  value={form.name}
+                  onChange={e => {
+                    const val = e.target.value
+                    const capitalized = val.charAt(0).toUpperCase() + val.slice(1)
+                    setForm({...form, name: capitalized})
+                  }}
+                  placeholder="Member full name"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
               <div>
                 <label className="text-sm text-gray-600 mb-1 block">Mobile Number</label>
@@ -389,7 +402,7 @@ export default function Members() {
                   className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${mobileError ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
                 />
                 {mobileError && <p className="text-xs text-red-500 mt-1">{mobileError}</p>}
-                {form.mobile.length > 0 && !mobileError && form.mobile.length === 10 && (
+                {form.mobile.length === 10 && !mobileError && (
                   <p className="text-xs text-green-500 mt-1">Valid mobile number</p>
                 )}
               </div>

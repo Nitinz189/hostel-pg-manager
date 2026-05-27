@@ -146,7 +146,7 @@ export default function Revenue() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-2 gap-3 mb-6">
         <div className="bg-green-50 border border-green-100 rounded-2xl p-4">
           <p className="text-xs text-gray-500 mb-1">Selected Period</p>
           <p className="text-2xl font-bold text-green-600">₹{thisMonthRevenue.toLocaleString()}</p>
@@ -156,7 +156,7 @@ export default function Revenue() {
           <p className="text-xs text-gray-500 mb-1">Total All Time</p>
           <p className="text-2xl font-bold text-blue-600">₹{totalRevenue.toLocaleString()}</p>
         </div>
-        <div className="bg-purple-50 border border-purple-100 rounded-2xl p-4">
+        <div className="bg-purple-50 border border-purple-100 rounded-2xl p-4 col-span-2 md:col-span-1">
           <p className="text-xs text-gray-500 mb-1">Total Payments</p>
           <p className="text-2xl font-bold text-purple-600">{payments.filter(p => p.status === 'paid').length}</p>
         </div>
@@ -172,7 +172,7 @@ export default function Revenue() {
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={chartData}>
+            <BarChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="month" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} />
