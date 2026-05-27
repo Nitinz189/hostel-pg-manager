@@ -110,6 +110,7 @@ function DesktopSidebar() {
 }
 
 function MobileBottomNav() {
+  const { currentUser } = useAuth()
   const location = useLocation()
   const isAdmin = currentUser?.email === 'vnitin398@gmail.com'
 
