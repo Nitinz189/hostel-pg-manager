@@ -57,7 +57,7 @@ export default function Login() {
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="md:hidden text-center mb-8">
-            <div className="text-5xl mb-3">💪</div>
+            <img src="/joomla.png" alt="logo" className="w-16 h-16 object-contain mx-auto mb-3" />
             <h1 className="text-2xl font-bold text-white">Smart Gym Management</h1>
             <p className="text-blue-300 text-sm mt-1">Gym Management Made Simple</p>
           </div>

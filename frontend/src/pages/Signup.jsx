@@ -62,7 +62,7 @@ export default function Signup() {
       style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #1e3a5f 100%)' }}>
       <div className="w-full max-w-sm">
         <div className="text-center mb-6">
-          <div className="text-5xl mb-3">💪</div>
+          <img src="/joomla.png" alt="logo" className="w-16 h-16 object-contain mx-auto mb-3" />
           <h1 className="text-2xl font-bold text-white">GYMmitra</h1>
           <p className="text-blue-300 text-sm mt-1">Request access for your gym</p>
         </div>
@@ -117,7 +117,7 @@ export default function Signup() {
         </div>
 
         <p className="mt-4 text-center text-xs text-blue-400">
-          By using GYMmitra you agree to our{' '}
+          By using Smart Gym Management you agree to our{' '}
           <Link to="/terms" className="underline">Terms</Link> and{' '}
           <Link to="/privacy" className="underline">Privacy Policy</Link>
         </p>
