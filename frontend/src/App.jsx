@@ -65,7 +65,7 @@ function DesktopSidebar() {
     { to: '/dashboard', img: '/dashboard.png', label: 'Home' },
     { to: '/members', img: '/team.png', label: 'Members' },
     { to: '/revenue', img: '/revenue.png', label: 'Revenue' },
-    { to: '/settings', icon: '⚙️', label: 'Settings',img:null },
+    { to: '/settings', img: '/settings.png', label: 'Revenue' },
     ...(isAdmin ? [{ to: '/admin', icon: '🛡️', label: 'Admin', img:null }] : []),
   ]
 
@@ -120,7 +120,7 @@ function MobileBottomNav() {
     { to: '/dashboard', img: '/dashboard.png', label: 'Home' },
     { to: '/members', img: '/team.png', label: 'Members' },
     { to: '/revenue', img: '/revenue.png', label: 'Revenue' },
-    { to: '/settings', icon: '⚙️', label: 'Settings', img:null },
+    { to: '/settings', img: '/settings.png', label: 'Settings' },
   ]
 
   if (!currentUser) return null
