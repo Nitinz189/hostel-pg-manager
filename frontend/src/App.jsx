@@ -117,9 +117,9 @@ function MobileBottomNav() {
   const location = useLocation()
 
   const tabs = [
-    { to: '/dashboard', icon: '/dashboard.png', label: 'Home' },
-    { to: '/members', icon: '/team.png', label: 'Members' },
-    { to: '/revenue', icon: '/revenue.png', label: 'Revenue' },
+    { to: '/dashboard', img: '/dashboard.png', label: 'Home' },
+    { to: '/members', img: '/team.png', label: 'Members' },
+    { to: '/revenue', img: '/revenue.png', label: 'Revenue' },
     { to: '/settings', icon: '⚙️', label: 'Settings', img:null },
   ]
 
