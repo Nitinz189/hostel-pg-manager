@@ -3,6 +3,8 @@ import { useAuth } from '../context/AuthContext'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { useNavigate } from 'react-router-dom'
+const navigate = useNavigate()
 
 const API = import.meta.env.VITE_API_URL
 const ADMIN_EMAIL = 'vnitin398@gmail.com'
@@ -291,7 +293,10 @@ export default function AdminPanel() {
                     <div className="flex items-start justify-between flex-wrap gap-3 mb-3">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <p className="text-sm font-semibold text-gray-800">{owner.propertyName || owner.name}</p>
+                          <p className="text-sm font-semibold text-gray-800 cursor-pointer text-blue-600 hover:underline"
+  onClick={() => navigate(`/admin/gym/${owner.firebaseUid}`)}>
+  {owner.propertyName || owner.name}
+</p>
                           {owner.gymmitraId && (
                             <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-mono">
                               {owner.gymmitraId}

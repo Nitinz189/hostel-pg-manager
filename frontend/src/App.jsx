@@ -20,7 +20,7 @@ import { Toaster } from 'react-hot-toast'
 import ExpiringMembers from './pages/ExpiringMembers'
 import ExpiredMembers from './pages/ExpiredMembers'
 import DueMembers from './pages/DueMembers'
-
+import GymProfile from './pages/GymProfile'
 
 function ProtectedRoute({ children }) {
   const { currentUser, loading } = useAuth()
@@ -65,7 +65,7 @@ function DesktopSidebar() {
     { to: '/dashboard', img: '/dashboard.png', label: 'Home' },
     { to: '/members', img: '/team.png', label: 'Members' },
     { to: '/revenue', img: '/revenue.png', label: 'Revenue' },
-    { to: '/settings', img: '/settings.png', label: 'Revenue' },
+    { to: '/settings', img: '/settings.png', label: 'Settings' },
     ...(isAdmin ? [{ to: '/admin', icon: '🛡️', label: 'Admin', img:null }] : []),
   ]
 
@@ -115,12 +115,14 @@ function DesktopSidebar() {
 function MobileBottomNav() {
   const { currentUser } = useAuth()
   const location = useLocation()
+  const isAdmin = currentUser?.email === 'vnitin398@gmail.com'
 
   const tabs = [
     { to: '/dashboard', img: '/dashboard.png', label: 'Home' },
     { to: '/members', img: '/team.png', label: 'Members' },
     { to: '/revenue', img: '/revenue.png', label: 'Revenue' },
     { to: '/settings', img: '/settings.png', label: 'Settings' },
+    ...(isAdmin ? [{ to: '/admin', icon: '🛡️', label: 'Admin' }] : []),
   ]
 
   if (!currentUser) return null
@@ -144,11 +146,10 @@ function MobileBottomNav() {
               className="flex flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all flex-1"
               style={isActive ? { background: 'rgba(255,255,255,0.12)' } : {}}
             >
-              <img
-                src={tab.img}
-                alt={tab.label}
-                className="w-6 h-6 object-contain"
-              />
+              {tab.img
+  ? <img src={tab.img} alt={tab.label} className="w-6 h-6 object-contain" />
+  : <span className="text-xl">{tab.icon}</span>
+}
 
               <span
                 className={`text-xs font-semibold ${
@@ -238,6 +239,7 @@ function App() {
           <Route path="/expiring-members" element={<ProtectedRoute><PlanGuard><Layout><ExpiringMembers /></Layout></PlanGuard></ProtectedRoute>} />
           <Route path="/expired-members" element={<ProtectedRoute><PlanGuard><Layout><ExpiredMembers /></Layout></PlanGuard></ProtectedRoute>} />
           <Route path="/due-members" element={<ProtectedRoute><PlanGuard><Layout><DueMembers /></Layout></PlanGuard></ProtectedRoute>} />
+          <Route path="/admin/gym/:id" element={<ProtectedRoute><Layout><GymProfile /></Layout></ProtectedRoute>} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

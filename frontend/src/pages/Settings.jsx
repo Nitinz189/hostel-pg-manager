@@ -92,7 +92,7 @@ export default function Settings() {
           <div className="p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-xs text-blue-200 font-medium mb-1">GYMmitra Subscription</p>
+                <p className="text-xs text-blue-200 font-medium mb-1">Smart Gym Management Subscription</p>
                 {subscription.gymmitraId && (
                   <p className="text-2xl font-bold text-white font-mono tracking-wider">{subscription.gymmitraId}</p>
                 )}
