@@ -42,30 +42,20 @@ export default function Settings() {
           }
         })
         if (data.planEndDate) {
-          const today = new Date()
-          const endDate = new Date(data.planEndDate)
-          const daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24))
+          const daysLeft = Math.ceil((new Date(data.planEndDate) - new Date()) / (1000 * 60 * 60 * 24))
           setSubscription({
-            gymmitraId: data.gymmitraId,
-            plan: data.plan || 'free',
+            gymmitraId: data.gymmitraId, plan: data.plan || 'free',
             memberLimit: data.memberLimit || 10,
-            planStartDate: data.planStartDate,
-            planEndDate: data.planEndDate,
-            daysLeft
+            planStartDate: data.planStartDate, planEndDate: data.planEndDate, daysLeft
           })
         } else {
           setSubscription({
-            gymmitraId: data.gymmitraId,
-            plan: data.plan || 'free',
+            gymmitraId: data.gymmitraId, plan: data.plan || 'free',
             memberLimit: data.memberLimit || 10,
-            planStartDate: null,
-            planEndDate: null,
-            daysLeft: null
+            planStartDate: null, planEndDate: null, daysLeft: null
           })
         }
-      } catch (err) {
-        console.log(err)
-      }
+      } catch (err) { console.log(err) }
     }
     if (currentUser) fetchProfile()
   }, [currentUser])
@@ -76,218 +66,203 @@ export default function Settings() {
     try {
       await axios.put(`${API}/owner/${currentUser.uid}`, profile)
       toast.success('Profile saved!')
-    } catch (err) {
-      toast.error('Failed to save')
-    }
+    } catch { toast.error('Failed to save') }
     setSaving(false)
   }
 
-  const planColors = {
-    free: 'text-gray-600 bg-gray-100',
-    basic: 'text-blue-600 bg-blue-100',
-    pro: 'text-purple-600 bg-purple-100'
+  const daysColor = subscription?.daysLeft === null ? 'text-gray-400' :
+    subscription?.daysLeft < 0 ? 'text-red-500' :
+    subscription?.daysLeft <= 3 ? 'text-red-500' :
+    subscription?.daysLeft <= 7 ? 'text-yellow-500' :
+    'text-green-500'
+
+  const planGradient = {
+    free: 'linear-gradient(135deg, #6b7280, #4b5563)',
+    basic: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+    pro: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
   }
 
-  const daysColor = subscription?.daysLeft === null ? 'text-gray-500' :
-    subscription?.daysLeft < 0 ? 'text-red-600' :
-    subscription?.daysLeft <= 3 ? 'text-red-600' :
-    subscription?.daysLeft <= 7 ? 'text-yellow-600' :
-    'text-green-600'
-
   return (
-    <div className="p-4 md:p-6 pb-32 md:pb-6 max-w-2xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-800">Settings</h1>
-        <p className="text-gray-500 text-sm">Manage your gym profile and subscription</p>
-      </div>
+    <div className="pb-32 md:pb-8 max-w-2xl">
 
-      {/* Subscription Card */}
+      {/* Hero */}
       {subscription && (
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 mb-4">
-          <h2 className="text-sm font-semibold text-gray-700 mb-4">Your GYMmitra Subscription</h2>
-
-          {subscription.gymmitraId && (
-            <div className="bg-gray-50 rounded-xl p-3 mb-4 flex items-center justify-between">
+        <div className="mx-4 mt-4 mb-4 rounded-3xl overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 50%, #7c3aed 100%)' }}>
+          <div className="p-5">
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-xs text-gray-400 mb-0.5">GYMmitra ID</p>
-                <p className="text-lg font-bold text-gray-700 tracking-wider font-mono">{subscription.gymmitraId}</p>
+                <p className="text-xs text-blue-200 font-medium mb-1">GYMmitra Subscription</p>
+                {subscription.gymmitraId && (
+                  <p className="text-2xl font-bold text-white font-mono tracking-wider">{subscription.gymmitraId}</p>
+                )}
+                <p className="text-xs text-blue-300 mt-0.5">Share with admin when calling</p>
               </div>
-              <p className="text-xs text-gray-400">Share with admin when calling</p>
-            </div>
-          )}
-
-          {/* Status card — full width */}
-          <div className="bg-gray-50 rounded-xl p-3 mb-3">
-            <p className="text-xs text-gray-400 mb-1">Status</p>
-            <p className={`text-sm font-semibold ${daysColor}`}>
-              {subscription.daysLeft === null ? 'No plan set' :
-               subscription.daysLeft < 0 ? 'Expired' :
-               `${subscription.daysLeft} days left`}
-            </p>
-          </div>
-
-          {/* 2x2 grid for remaining 4 metrics */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-gray-50 rounded-xl p-3">
-              <p className="text-xs text-gray-400 mb-1">Plan</p>
-              <span className={`text-xs font-semibold px-2 py-1 rounded-full capitalize ${planColors[subscription.plan]}`}>
+              <span className="text-white text-xs font-bold px-3 py-1.5 rounded-full capitalize"
+                style={{ background: planGradient[subscription.plan] || planGradient.free }}>
                 {subscription.plan}
               </span>
             </div>
-            <div className="bg-gray-50 rounded-xl p-3">
-              <p className="text-xs text-gray-400 mb-1">Member Limit</p>
-              <p className="text-sm font-semibold text-gray-700">
-                {subscription.memberLimit >= 999 ? 'Unlimited' : subscription.memberLimit}
+
+            <div className="bg-white bg-opacity-10 rounded-2xl px-4 py-3 mb-3">
+              <p className={`text-base font-bold text-white`}>
+                {subscription.daysLeft === null ? 'No plan set' :
+                 subscription.daysLeft < 0 ? 'Plan Expired' :
+                 `${subscription.daysLeft} days left`}
+              </p>
+              <p className="text-blue-200 text-xs mt-0.5">
+                {subscription.planEndDate
+                  ? `Expires ${new Date(subscription.planEndDate).toLocaleDateString('en-IN')}`
+                  : 'Contact admin to activate'}
               </p>
             </div>
-            {subscription.planStartDate && (
-              <div className="bg-gray-50 rounded-xl p-3">
-                <p className="text-xs text-gray-400 mb-1">Started</p>
-                <p className="text-sm font-medium text-gray-700">
-                  {new Date(subscription.planStartDate).toLocaleDateString('en-IN')}
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-white bg-opacity-10 rounded-2xl px-3 py-2.5">
+                <p className="text-xs text-blue-300 mb-0.5">Member Limit</p>
+                <p className="text-sm font-bold text-white">
+                  {subscription.memberLimit >= 999 ? 'Unlimited' : subscription.memberLimit}
                 </p>
               </div>
-            )}
-            {subscription.planEndDate && (
-              <div className="bg-gray-50 rounded-xl p-3">
-                <p className="text-xs text-gray-400 mb-1">Expires</p>
-                <p className={`text-sm font-medium ${daysColor}`}>
-                  {new Date(subscription.planEndDate).toLocaleDateString('en-IN')}
+              {subscription.planStartDate && (
+                <div className="bg-white bg-opacity-10 rounded-2xl px-3 py-2.5">
+                  <p className="text-xs text-blue-300 mb-0.5">Started</p>
+                  <p className="text-sm font-bold text-white">
+                    {new Date(subscription.planStartDate).toLocaleDateString('en-IN')}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {subscription.daysLeft !== null && subscription.daysLeft <= 7 && (
+              <div className={`mt-3 rounded-2xl p-3 ${subscription.daysLeft < 0 ? 'bg-red-500 bg-opacity-30' : 'bg-yellow-500 bg-opacity-20'}`}>
+                <p className="text-xs text-white font-medium">
+                  {subscription.daysLeft < 0
+                    ? '⚠️ Plan expired. Contact admin to renew.'
+                    : `⚠️ Expires in ${subscription.daysLeft} days. Contact admin.`}
                 </p>
               </div>
             )}
           </div>
-
-          {subscription.daysLeft !== null && subscription.daysLeft <= 7 && (
-            <div className={`mt-3 rounded-xl p-3 ${subscription.daysLeft < 0 ? 'bg-red-50' : 'bg-yellow-50'}`}>
-              <p className={`text-xs font-medium ${subscription.daysLeft < 0 ? 'text-red-600' : 'text-yellow-700'}`}>
-                {subscription.daysLeft < 0
-                  ? 'Your plan has expired. Contact admin to renew.'
-                  : `Your plan expires in ${subscription.daysLeft} days. Contact admin to renew.`}
-              </p>
-            </div>
-          )}
         </div>
       )}
 
       {/* Profile Form */}
-      <div className="bg-white border border-gray-100 rounded-2xl p-5 mb-4">
-        <h2 className="text-sm font-semibold text-gray-700 mb-4">Gym Profile</h2>
-        <form onSubmit={handleSave} className="space-y-3">
+      <div className="mx-4 mb-4 bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-1 h-5 bg-blue-400 rounded-full"></div>
+          <h2 className="text-sm font-bold text-gray-800">Gym Profile</h2>
+        </div>
+        <form onSubmit={handleSave} className="space-y-4">
+          {[
+            { label: 'Owner Name', key: 'name', placeholder: 'Your full name' },
+            { label: 'Gym Name', key: 'propertyName', placeholder: 'e.g. Power Fitness Gym' },
+            { label: 'UPI ID', key: 'upiId', placeholder: 'yourname@upi' },
+          ].map(f => (
+            <div key={f.key}>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">{f.label}</label>
+              <input value={profile[f.key]}
+                onChange={e => setProfile({...profile, [f.key]: e.target.value})}
+                placeholder={f.placeholder}
+                className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+          ))}
           <div>
-            <label className="text-sm text-gray-600 mb-1 block">Owner Name</label>
-            <input value={profile.name} onChange={e => setProfile({...profile, name: e.target.value})} placeholder="Your full name" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
-          </div>
-          <div>
-            <label className="text-sm text-gray-600 mb-1 block">Gym Name</label>
-            <input value={profile.propertyName} onChange={e => setProfile({...profile, propertyName: e.target.value})} placeholder="e.g. Power Fitness Gym" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
-          </div>
-          <div>
-            <label className="text-sm text-gray-600 mb-1 block">Mobile Number</label>
-            <input
-              value={profile.mobile}
-              onChange={e => {
-                const val = e.target.value.replace(/[^0-9]/g, '').substring(0, 10)
-                setProfile({...profile, mobile: val})
-              }}
-              placeholder="10 digit mobile number"
-              maxLength={10}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            />
-          </div>
-          <div>
-            <label className="text-sm text-gray-600 mb-1 block">UPI ID</label>
-            <input value={profile.upiId} onChange={e => setProfile({...profile, upiId: e.target.value})} placeholder="yourname@upi" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Mobile Number</label>
+            <input value={profile.mobile}
+              onChange={e => setProfile({...profile, mobile: e.target.value.replace(/[^0-9]/g,'').substring(0,10)})}
+              placeholder="10 digit mobile number" maxLength={10} inputMode="numeric"
+              className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
 
           {/* Address */}
-          <div className="pt-2 border-t border-gray-50">
-            <p className="text-sm font-medium text-gray-700 mb-3">Gym Address</p>
+          <div className="pt-2 border-t border-gray-100">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Gym Address</p>
             <div className="space-y-3">
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">Country</label>
-                <input value="India" readOnly className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 text-gray-400 cursor-not-allowed" />
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Country</label>
+                <input value="India" readOnly
+                  className="w-full bg-gray-100 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-gray-400 cursor-not-allowed" />
               </div>
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">State</label>
-                <select
-                  value={profile.address.state}
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">State</label>
+                <select value={profile.address.state}
                   onChange={e => setProfile({...profile, address: {...profile.address, state: e.target.value}})}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                >
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <option value="">Select state</option>
                   {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               {profile.address.state && (
                 <div>
-                  <label className="text-sm text-gray-600 mb-1 block">City</label>
-                  <input
-                    value={profile.address.city}
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">City</label>
+                  <input value={profile.address.city}
                     onChange={e => setProfile({...profile, address: {...profile.address, city: e.target.value}})}
                     placeholder="Enter your city"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                  />
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
               )}
               {profile.address.city && (
                 <div>
-                  <label className="text-sm text-gray-600 mb-1 block">Pincode</label>
-                  <input
-                    value={profile.address.pincode}
-                    onChange={e => {
-                      const val = e.target.value.replace(/[^0-9]/g, '').substring(0, 6)
-                      setProfile({...profile, address: {...profile.address, pincode: val}})
-                    }}
-                    placeholder="6 digit pincode"
-                    maxLength={6}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                  />
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Pincode</label>
+                  <input value={profile.address.pincode}
+                    onChange={e => setProfile({...profile, address: {...profile.address, pincode: e.target.value.replace(/[^0-9]/g,'').substring(0,6)}})}
+                    placeholder="6 digit pincode" maxLength={6}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
               )}
             </div>
           </div>
 
-          <button type="submit" disabled={saving} className="w-full bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-700 transition">
+          <button type="submit" disabled={saving}
+            className="w-full text-white py-3 rounded-2xl text-sm font-bold transition"
+            style={{ background: 'linear-gradient(135deg, #1e40af, #7c3aed)' }}>
             {saving ? 'Saving...' : 'Save Profile'}
           </button>
         </form>
       </div>
 
       {/* Account Info */}
-      <div className="bg-white border border-gray-100 rounded-2xl p-5 mb-4">
-        <h2 className="text-sm font-semibold text-gray-700 mb-2">Account Info</h2>
-        <p className="text-sm text-gray-500">Email: {currentUser?.email}</p>
-        <p className="text-xs text-gray-400 mt-1">To change your password use the forgot password option on the login page.</p>
+      <div className="mx-4 mb-4 bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-1 h-5 bg-gray-300 rounded-full"></div>
+          <h2 className="text-sm font-bold text-gray-800">Account</h2>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg, #1e40af, #7c3aed)' }}>
+            {currentUser?.email?.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-800">{currentUser?.email}</p>
+            <p className="text-xs text-gray-400">Use forgot password on login to change password</p>
+          </div>
+        </div>
       </div>
 
       {/* Logout */}
-      {!showLogoutConfirm ? (
-        <button
-          onClick={() => setShowLogoutConfirm(true)}
-          className="w-full border border-red-200 text-red-500 py-3 rounded-2xl text-sm font-medium hover:bg-red-50 transition mb-4"
-        >
-          🚪 Logout
-        </button>
-      ) : (
-        <div className="bg-red-50 border border-red-100 rounded-2xl p-4 mb-4">
-          <p className="text-sm text-red-700 font-medium mb-3">Are you sure you want to logout?</p>
-          <div className="flex gap-2">
-            <button
-              onClick={logout}
-              className="flex-1 bg-red-500 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-red-600 transition"
-            >
-              Yes, Logout
-            </button>
-            <button
-              onClick={() => setShowLogoutConfirm(false)}
-              className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition"
-            >
-              Cancel
-            </button>
+      <div className="mx-4 mb-4">
+        {!showLogoutConfirm ? (
+          <button onClick={() => setShowLogoutConfirm(true)}
+            className="w-full border border-red-100 text-red-400 py-3 rounded-2xl text-sm font-medium hover:bg-red-50 transition">
+            🚪 Logout
+          </button>
+        ) : (
+          <div className="bg-red-50 border border-red-100 rounded-3xl p-4">
+            <p className="text-sm text-red-700 font-semibold mb-3 text-center">Sure you want to logout?</p>
+            <div className="flex gap-3">
+              <button onClick={logout}
+                className="flex-1 bg-red-500 text-white py-3 rounded-2xl text-sm font-bold">
+                Yes, Logout
+              </button>
+              <button onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-2xl text-sm font-medium">
+                Cancel
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

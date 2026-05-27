@@ -112,36 +112,29 @@ function DesktopSidebar() {
 function MobileBottomNav() {
   const { currentUser } = useAuth()
   const location = useLocation()
-  const isAdmin = currentUser?.email === 'vnitin398@gmail.com'
 
   const tabs = [
-    { to: '/dashboard', icon: '📊', label: 'Home' },
+    { to: '/dashboard', icon: '🏠', label: 'Home' },
     { to: '/members', icon: '💪', label: 'Members' },
     { to: '/revenue', icon: '💰', label: 'Revenue' },
     { to: '/settings', icon: '⚙️', label: 'Settings' },
   ]
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-      <div className="flex items-center justify-around px-1 py-1">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-4 pb-4"
+      style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+      <div className="rounded-3xl px-3 py-2 flex items-center justify-around"
+        style={{ background: 'linear-gradient(135deg, #0f172a, #1e1b4b)' }}>
         {tabs.map(tab => {
           const isActive = location.pathname === tab.to
           return (
-            <Link
-              key={tab.to}
-              to={tab.to}
-              className={`flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0 flex-1 ${
-                isActive ? 'text-blue-600' : 'text-gray-400'
-              }`}
-            >
-              <span className={`text-xl transition-transform ${isActive ? 'scale-110' : ''}`}>
-                {tab.icon}
-              </span>
-              <span className={`text-xs font-medium truncate ${isActive ? 'text-blue-600' : 'text-gray-400'}`}>
+            <Link key={tab.to} to={tab.to}
+              className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-2xl transition-all"
+              style={isActive ? { background: 'rgba(255,255,255,0.15)' } : {}}>
+              <span className="text-lg">{tab.icon}</span>
+              <span className={`text-xs font-semibold ${isActive ? 'text-white' : 'text-gray-400'}`}>
                 {tab.label}
               </span>
-              {isActive && <div className="w-1 h-1 bg-blue-600 rounded-full"></div>}
             </Link>
           )
         })}
@@ -192,7 +185,6 @@ function MobileTopBar() {
 function Layout({ children }) {
   return (
     <div className="min-h-screen bg-gray-50">
-      <MobileTopBar />
       <DesktopSidebar />
       <MobileBottomNav />
       <div className="md:ml-60 min-h-screen">
