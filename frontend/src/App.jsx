@@ -120,22 +120,41 @@ function MobileBottomNav() {
     { to: '/dashboard', img: '/dashboard.png', label: 'Home' },
     { to: '/members', img: '/team.png', label: 'Members' },
     { to: '/revenue', img: '/revenue.png', label: 'Revenue' },
-    { to: '/settings', icon: '⚙️', label: 'Settings', img:null },
+    { to: '/settings', img: '/settings.png', label: 'Settings' },
   ]
 
+  if (!currentUser) return null
+
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-4 pb-4"
-      style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
-      <div className="rounded-3xl px-3 py-2 flex items-center justify-around"
-        style={{ background: 'linear-gradient(135deg, #0f172a, #1e1b4b)' }}>
+    <div
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-4 pb-4"
+      style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
+    >
+      <div
+        className="rounded-3xl px-3 py-2 flex items-center justify-around shadow-2xl"
+        style={{ background: 'linear-gradient(135deg, #0f172a, #1e1b4b)' }}
+      >
         {tabs.map(tab => {
           const isActive = location.pathname === tab.to
+
           return (
-            <Link key={tab.to} to={tab.to}
-              className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-2xl transition-all"
-              style={isActive ? { background: 'rgba(255,255,255,0.15)' } : {}}>
-              {tab.img ? <img src={tab.img} alt={tab.label} className="w-6 h-6 object-contain" /> : <span className="text-lg">{tab.icon}</span>}
-              <span className={`text-xs font-semibold ${isActive ? 'text-white' : 'text-gray-400'}`}>
+            <Link
+              key={tab.to}
+              to={tab.to}
+              className="flex flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all flex-1"
+              style={isActive ? { background: 'rgba(255,255,255,0.12)' } : {}}
+            >
+              <img
+                src={tab.img}
+                alt={tab.label}
+                className="w-6 h-6 object-contain"
+              />
+
+              <span
+                className={`text-xs font-semibold ${
+                  isActive ? 'text-white' : 'text-gray-400'
+                }`}
+              >
                 {tab.label}
               </span>
             </Link>
