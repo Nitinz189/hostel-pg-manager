@@ -42,7 +42,7 @@ export default function Login() {
         <p className="text-blue-300 text-lg text-center max-w-xs">
           Smart gym management for local gym owners
         </p>
-        <div className="mt-10 space-y-4 w-full max-w-xs mx-auto">
+        <div className="mt-10 space-y-4 inline-flex flex-col items-start">
           {['Member tracking', 'Due payment alerts', 'WhatsApp reminders', 'Revenue insights'].map(f => (
             <div key={f} className="flex items-center gap-3">
               <div className="w-6 h-6 rounded-full bg-blue-500 bg-opacity-30 flex items-center justify-center text-xs text-blue-300">✓</div>
