@@ -1,98 +1,82 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import toast from 'react-hot-toast'
 
 const API = import.meta.env.VITE_API_URL
-
-const avatarGradients = [
-  'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-  'linear-gradient(135deg, #8b5cf6, #6d28d9)',
-  'linear-gradient(135deg, #10b981, #059669)',
-  'linear-gradient(135deg, #f59e0b, #d97706)',
-  'linear-gradient(135deg, #ef4444, #dc2626)',
-  'linear-gradient(135deg, #06b6d4, #0891b2)',
-]
-
-function getGradient(name) {
-  const index = name.charCodeAt(0) % avatarGradients.length
-  return avatarGradients[index]
-}
-
-function getStatusInfo(status) {
-  const map = {
-    active:   { label: 'Active',   dot: 'bg-green-400',  text: 'text-green-600'  },
-    due_soon: { label: 'Expiring', dot: 'bg-yellow-400', text: 'text-yellow-600' },
-    expired:  { label: 'Expired',  dot: 'bg-red-400',    text: 'text-red-500'    },
-    inactive: { label: 'Inactive', dot: 'bg-gray-300',   text: 'text-gray-400'   },
-  }
-  return map[status] || map.inactive
-}
-
-function getDaysInfo(member) {
-  if (!member.expiryDate) return null
-  const days = Math.ceil((new Date(member.expiryDate) - new Date()) / (1000 * 60 * 60 * 24))
-  if (member.status === 'expired') return { text: `Expired ${Math.abs(days)}d ago`, color: 'text-red-500' }
-  if (days <= 7) return { text: `${days}d left`, color: 'text-yellow-600' }
-  return { text: `${days} days left`, color: 'text-gray-400' }
-}
 
 export default function GymProfile() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [owner, setOwner] = useState(null)
-  const [members, setMembers] = useState([])
+  const [revenue, setRevenue] = useState([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
+  const [editModal, setEditModal] = useState(null)
+  const [editForm, setEditForm] = useState({ amount: '', notes: '', paidOn: '' })
 
   useEffect(() => {
     async function fetchData() {
       setLoading(true)
       try {
-        const [ownersRes, membersRes] = await Promise.all([
+        const [ownersRes, revenueRes] = await Promise.all([
           axios.get(`${API}/admin/owners`),
-          axios.get(`${API}/members?ownerId=${id}`)
+          axios.get(`${API}/admin/revenue`)
         ])
         const found = ownersRes.data.owners.find(o => o.firebaseUid === id)
         setOwner(found)
-        setMembers(membersRes.data)
+        const gymRevenue = revenueRes.data.revenue.filter(r =>
+          r.gymmitraId === found?.gymmitraId || r.gymName === found?.propertyName
+        )
+        setRevenue(gymRevenue)
       } catch (err) {
-        console.log(err)
+        toast.error('Failed to load gym data')
       }
       setLoading(false)
     }
     fetchData()
   }, [id])
 
+  async function editRevenue(revId) {
+    try {
+      await axios.put(`${API}/admin/revenue/${revId}`, {
+        amount: parseInt(editForm.amount),
+        notes: editForm.notes,
+        paidOn: editForm.paidOn
+      })
+      toast.success('Updated!')
+      setEditModal(null)
+      const revenueRes = await axios.get(`${API}/admin/revenue`)
+      const gymRevenue = revenueRes.data.revenue.filter(r =>
+        r.gymmitraId === owner?.gymmitraId || r.gymName === owner?.propertyName
+      )
+      setRevenue(gymRevenue)
+    } catch (err) {
+      toast.error('Failed to update')
+    }
+  }
+
+  async function deleteRevenue(revId) {
+    try {
+      await axios.delete(`${API}/admin/revenue/${revId}`)
+      toast.success('Deleted!')
+      setRevenue(revenue.filter(r => r._id !== revId))
+    } catch (err) {
+      toast.error('Failed to delete')
+    }
+  }
+
+  const totalPaid = revenue.reduce((sum, r) => sum + (r.amount || 0), 0)
+
   const daysLeft = owner?.planEndDate
     ? Math.ceil((new Date(owner.planEndDate) - new Date()) / (1000 * 60 * 60 * 24))
     : null
-
-  const activeCount = members.filter(m => m.status === 'active' || m.status === 'due_soon').length
-  const inactiveCount = members.filter(m => m.status === 'inactive').length
-
-  const filtered = members.filter(m => {
-    const matchSearch =
-      m.name?.toLowerCase().includes(search.toLowerCase()) ||
-      m.registrationNumber?.toLowerCase().includes(search.toLowerCase()) ||
-      m.mobile?.includes(search)
-    const matchStatus =
-      statusFilter === 'all' ? true :
-      statusFilter === 'active' ? (m.status === 'active' || m.status === 'due_soon') :
-      statusFilter === 'inactive' ? m.status === 'inactive' : true
-    return matchSearch && matchStatus
-  })
 
   if (loading) {
     return (
       <div className="p-4 pb-32">
         <div className="h-40 bg-gray-100 rounded-3xl animate-pulse mb-4"></div>
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          {[1,2,3].map(i => <div key={i} className="h-20 bg-gray-100 rounded-2xl animate-pulse"></div>)}
-        </div>
-        <div className="space-y-3">
-          {[1,2,3,4,5].map(i => <div key={i} className="bg-gray-100 rounded-2xl h-16 animate-pulse"></div>)}
-        </div>
+        <div className="h-48 bg-gray-100 rounded-3xl animate-pulse mb-4"></div>
+        <div className="h-48 bg-gray-100 rounded-3xl animate-pulse"></div>
       </div>
     )
   }
@@ -160,22 +144,22 @@ export default function GymProfile() {
         </div>
       </div>
 
-      {/* Info Cards Row */}
+      {/* Stats Row */}
       <div className="grid grid-cols-3 gap-3 mx-4 mb-4">
         <div className="bg-white rounded-2xl p-3 text-center shadow-sm border border-gray-100">
-          <p className="text-2xl font-bold text-blue-600">{members.length}</p>
+          <p className="text-2xl font-bold text-green-600">₹{totalPaid.toLocaleString()}</p>
           <p className="text-xs text-gray-500 mt-0.5">Total</p>
-          <p className="text-xs text-gray-400">Members</p>
+          <p className="text-xs text-gray-400">Paid to you</p>
         </div>
         <div className="bg-white rounded-2xl p-3 text-center shadow-sm border border-gray-100">
-          <p className="text-2xl font-bold text-green-500">{activeCount}</p>
-          <p className="text-xs text-gray-500 mt-0.5">Active</p>
-          <p className="text-xs text-gray-400">Members</p>
+          <p className="text-2xl font-bold text-blue-600">{revenue.length}</p>
+          <p className="text-xs text-gray-500 mt-0.5">Payments</p>
+          <p className="text-xs text-gray-400">Total entries</p>
         </div>
         <div className="bg-white rounded-2xl p-3 text-center shadow-sm border border-gray-100">
-          <p className="text-2xl font-bold text-purple-500">{owner.memberLimit || 10}</p>
-          <p className="text-xs text-gray-500 mt-0.5">Limit</p>
-          <p className="text-xs text-gray-400">{owner.plan || 'free'} plan</p>
+          <p className="text-2xl font-bold text-purple-600">{owner.memberCount || 0}</p>
+          <p className="text-xs text-gray-500 mt-0.5">Members</p>
+          <p className="text-xs text-gray-400">of {owner.memberLimit || 10}</p>
         </div>
       </div>
 
@@ -204,87 +188,84 @@ export default function GymProfile() {
         </div>
       </div>
 
-      {/* Members Section */}
-      <div className="mx-4 mb-2">
+      {/* Revenue Section */}
+      <div className="mx-4 mb-4 bg-white rounded-3xl p-4 shadow-sm border border-gray-100">
         <div className="flex items-center gap-2 mb-3">
-          <div className="w-1 h-5 bg-purple-400 rounded-full"></div>
-          <h2 className="text-sm font-bold text-gray-800">Members ({members.length})</h2>
+          <div className="w-1 h-5 bg-green-400 rounded-full"></div>
+          <h2 className="text-sm font-bold text-gray-800">Payment History</h2>
         </div>
 
-        {/* Search */}
-        <div className="relative mb-3">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
-          <input
-            type="text"
-            placeholder="Search name, reg number, mobile..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full bg-white border border-gray-200 rounded-2xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        {/* Status Filter */}
-        <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-hide">
-          {[
-            { value: 'all', label: `All (${members.length})` },
-            { value: 'active', label: `Active (${activeCount})` },
-            { value: 'inactive', label: `Inactive (${inactiveCount})` },
-          ].map(f => (
-            <button key={f.value} onClick={() => setStatusFilter(f.value)}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition whitespace-nowrap ${
-                statusFilter === f.value
-                  ? 'text-white shadow-sm'
-                  : 'bg-white border border-gray-200 text-gray-500'
-              }`}
-              style={statusFilter === f.value ? { background: 'linear-gradient(135deg, #1e40af, #7c3aed)' } : {}}>
-              {f.label}
-            </button>
-          ))}
-        </div>
+        {revenue.length === 0 ? (
+          <div className="text-center py-8 text-gray-400">
+            <p className="text-3xl mb-2">💰</p>
+            <p className="text-sm">No payments logged yet</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {revenue.map(r => (
+              <div key={r._id} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">₹{r.amount?.toLocaleString()}</p>
+                  <p className="text-xs text-gray-400">
+                    {r.planMonths} months • {r.paidOn ? new Date(r.paidOn).toLocaleDateString('en-IN') : '—'}
+                  </p>
+                  {r.notes && <p className="text-xs text-gray-400">{r.notes}</p>}
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      setEditModal(r._id)
+                      setEditForm({
+                        amount: String(r.amount),
+                        notes: r.notes || '',
+                        paidOn: r.paidOn ? new Date(r.paidOn).toISOString().split('T')[0] : ''
+                      })
+                    }}
+                    className="text-blue-400 text-xs hover:text-blue-600">Edit</button>
+                  <button onClick={() => deleteRevenue(r._id)}
+                    className="text-red-400 text-xs hover:text-red-600">Del</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Members List */}
-      {filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-4xl mb-3">🏋️</p>
-          <p className="text-sm">No members found</p>
-        </div>
-      ) : (
-        <div className="px-4 space-y-2">
-          {filtered.map(member => {
-            const statusInfo = getStatusInfo(member.status)
-            const daysInfo = getDaysInfo(member)
-            return (
-              <div key={member._id}
-                onClick={() => navigate(`/member/${member._id}`)}
-                className="bg-white rounded-2xl px-4 py-3 flex items-center gap-3 cursor-pointer active:scale-98 transition-transform shadow-sm border border-gray-100">
-                <div className="w-11 h-11 rounded-full flex items-center justify-center text-base font-bold text-white flex-shrink-0"
-                  style={{ background: getGradient(member.name) }}>
-                  {member.name.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <p className="text-sm font-semibold text-gray-900 capitalize truncate">{member.name}</p>
-                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusInfo.dot}`}></div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-xs text-gray-400">#{member.registrationNumber}</p>
-                    <span className="text-gray-200">•</span>
-                    <p className="text-xs text-gray-400">{member.membershipType}</p>
-                    {daysInfo && (
-                      <>
-                        <span className="text-gray-200">•</span>
-                        <p className={`text-xs font-medium ${daysInfo.color}`}>{daysInfo.text}</p>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <span className="text-gray-300 text-sm flex-shrink-0">›</span>
+      {/* Edit Revenue Modal */}
+      {editModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+            <h2 className="text-base font-semibold text-gray-800 mb-4">Edit Payment</h2>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Amount (₹)</label>
+                <input type="number" value={editForm.amount}
+                  onChange={e => setEditForm({...editForm, amount: e.target.value})}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
-            )
-          })}
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Date</label>
+                <input type="date" value={editForm.paidOn}
+                  onChange={e => setEditForm({...editForm, paidOn: e.target.value})}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Notes</label>
+                <input value={editForm.notes}
+                  onChange={e => setEditForm({...editForm, notes: e.target.value})}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button onClick={() => setEditModal(null)}
+                className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm">Cancel</button>
+              <button onClick={() => editRevenue(editModal)}
+                className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium">Save</button>
+            </div>
+          </div>
         </div>
       )}
+
     </div>
   )
 }
