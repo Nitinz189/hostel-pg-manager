@@ -38,7 +38,7 @@ export default function Login() {
       {/* Left decorative side — hidden on mobile */}
       <div className="hidden md:flex flex-1 flex-col items-center justify-center p-12 text-white">
         <div className="text-6xl mb-6">💪</div>
-        <h1 className="text-4xl font-bold mb-3">GYMmitra</h1>
+        <h1 className="text-4xl font-bold mb-3">Smart Gym Management</h1>
         <p className="text-blue-300 text-lg text-center max-w-xs">
           Smart gym management for local gym owners
         </p>
@@ -58,7 +58,7 @@ export default function Login() {
           {/* Mobile logo */}
           <div className="md:hidden text-center mb-8">
             <div className="text-5xl mb-3">💪</div>
-            <h1 className="text-2xl font-bold text-white">GYMmitra</h1>
+            <h1 className="text-2xl font-bold text-white">Smart Gym Management</h1>
             <p className="text-blue-300 text-sm mt-1">Gym Management Made Simple</p>
           </div>
 
@@ -102,7 +102,7 @@ export default function Login() {
           </div>
 
           <p className="mt-4 text-center text-xs text-blue-400">
-            By using GYMmitra you agree to our{' '}
+            By using Smart Gym Management you agree to our{' '}
             <Link to="/terms" className="underline">Terms</Link> and{' '}
             <Link to="/privacy" className="underline">Privacy Policy</Link>
           </p>

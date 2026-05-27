@@ -62,16 +62,16 @@ function DesktopSidebar() {
   }, [currentUser])
 
   const links = [
-    { to: '/dashboard', icon: '📊', label: 'Dashboard' },
-    { to: '/members', icon: '💪', label: 'Members' },
-    { to: '/revenue', icon: '💰', label: 'Revenue' },
-    { to: '/settings', icon: '⚙️', label: 'Settings' },
-    ...(isAdmin ? [{ to: '/admin', icon: '🛡️', label: 'Admin' }] : []),
+    { to: '/dashboard', img: '/dashboard.png', label: 'Home' },
+    { to: '/members', img: '/team.png', label: 'Members' },
+    { to: '/revenue', img: '/revenue.png', label: 'Revenue' },
+    { to: '/settings', icon: '⚙️', label: 'Settings',img:null },
+    ...(isAdmin ? [{ to: '/admin', icon: '🛡️', label: 'Admin', img:null }] : []),
   ]
 
   return (
     <div className="hidden md:flex fixed top-0 left-0 h-full w-60 flex-col z-50"
-      style={{ background: 'linear-gradient(180deg, #1e40af 0%, #1d4ed8 50%, #2563eb 100%)' }}>
+      style={{ background: 'linear-gradient(180deg, #0f172a 0%, #1e1b4b 60%, #1e3a5f 100%)' }}>
       <div className="p-5 border-b border-blue-400 border-opacity-30">
         <div className="flex items-center gap-2">
           <span className="text-2xl">💪</span>
@@ -92,7 +92,10 @@ function DesktopSidebar() {
                 : 'text-blue-100 hover:bg-white hover:bg-opacity-10 hover:text-white'
             }`}
           >
-            <span className="text-base">{link.icon}</span>
+            {link.img
+  ? <img src={link.img} alt={link.label} className="w-5 h-5 object-contain" />
+  : <span className="text-base">{link.icon}</span>
+}
             {link.label}
           </Link>
         ))}
@@ -114,10 +117,10 @@ function MobileBottomNav() {
   const location = useLocation()
 
   const tabs = [
-    { to: '/dashboard', icon: '🏠', label: 'Home' },
-    { to: '/members', icon: '💪', label: 'Members' },
-    { to: '/revenue', icon: '💰', label: 'Revenue' },
-    { to: '/settings', icon: '⚙️', label: 'Settings' },
+    { to: '/dashboard', icon: '/dashboard.png', label: 'Home' },
+    { to: '/members', icon: '/team.png', label: 'Members' },
+    { to: '/revenue', icon: '/revenue.png', label: 'Revenue' },
+    { to: '/settings', icon: '⚙️', label: 'Settings', img:null },
   ]
 
   return (
@@ -131,7 +134,7 @@ function MobileBottomNav() {
             <Link key={tab.to} to={tab.to}
               className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-2xl transition-all"
               style={isActive ? { background: 'rgba(255,255,255,0.15)' } : {}}>
-              <span className="text-lg">{tab.icon}</span>
+              {tab.img ? <img src={tab.img} alt={tab.label} className="w-6 h-6 object-contain" /> : <span className="text-lg">{tab.icon}</span>}
               <span className={`text-xs font-semibold ${isActive ? 'text-white' : 'text-gray-400'}`}>
                 {tab.label}
               </span>
@@ -174,7 +177,7 @@ function MobileTopBar() {
   return (
     <div className="md:hidden bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
       <div className="flex items-center gap-2">
-        <span className="text-lg">💪</span>
+        <img src="/joomla.png" alt="logo" className="w-8 h-8 object-contain" />
         <span className="text-sm font-bold text-blue-600">{title}</span>
       </div>
       <p className="text-xs text-gray-400 truncate max-w-32">{gymName}</p>

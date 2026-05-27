@@ -263,22 +263,19 @@ export default function Members() {
       </div>
 
       {/* Plan Filter */}
-      <div className="px-4 mb-4 flex gap-2 overflow-x-auto scrollbar-hide">
-        <button onClick={() => setPlanFilter('all')}
-          className={`px-3 py-1 rounded-full text-xs font-medium transition whitespace-nowrap ${
-            planFilter === 'all' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500'
-          }`}>
-          All Plans
-        </button>
-        {Object.entries(planCounts).map(([plan, count]) => (
-          <button key={plan} onClick={() => setPlanFilter(planFilter === plan ? 'all' : plan)}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition whitespace-nowrap ${
-              planFilter === plan ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'
-            }`}>
-            {plan} ({count})
-          </button>
-        ))}
-      </div>
+      {/* Plan Filter Dropdown */}
+<div className="px-4 mb-4">
+  <select
+    value={planFilter}
+    onChange={e => setPlanFilter(e.target.value)}
+    className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700"
+  >
+    <option value="all">All Plans ({members.length})</option>
+    {Object.entries(planCounts).map(([plan, count]) => (
+      <option key={plan} value={plan}>{plan} ({count})</option>
+    ))}
+  </select>
+</div>
 
       {/* Members List */}
       {loading ? (
