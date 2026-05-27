@@ -259,17 +259,19 @@ export default function Dashboard() {
                       <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                         <p className="text-sm font-bold text-red-600">₹{(due.amount - due.paidAmount).toLocaleString()}</p>
                         <button
-                          onClick={() => sendWhatsApp(due)}
-                          className="bg-green-500 text-white text-xs px-2 py-1.5 rounded-lg hover:bg-green-600"
-                        >
-                          WA
-                        </button>
-                        <button
-                          onClick={() => { setPayingDue(due._id); setPayAmount(String(due.amount - due.paidAmount)) }}
-                          className="bg-blue-600 text-white text-xs px-2 py-1.5 rounded-lg hover:bg-blue-700"
-                        >
-                          Paid
-                        </button>
+  onClick={() => sendWhatsApp(due)}
+  className="bg-green-500 text-white text-xs px-2.5 py-1.5 rounded-lg hover:bg-green-600"
+  title="Send WhatsApp"
+>
+  💬
+</button>
+<button
+  onClick={() => { setPayingDue(due._id); setPayAmount(String(due.amount - due.paidAmount)) }}
+  className="bg-blue-600 text-white text-xs px-2.5 py-1.5 rounded-lg hover:bg-blue-700"
+  title="Mark Paid"
+>
+  ✓
+</button>
                       </div>
                     </div>
                   )}
