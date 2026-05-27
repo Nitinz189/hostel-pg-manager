@@ -5,7 +5,7 @@ export default function PrivacyPolicy() {
     <div className="min-h-screen bg-gray-50 py-10 px-4">
       <div className="max-w-2xl mx-auto bg-white rounded-2xl border border-gray-100 p-8">
         <div className="flex items-center gap-2 mb-6">
-          <span className="text-2xl">💪</span>
+          <img src="/gym.png" alt="logo" className="w-7 h-7 object-contain" />
           <h1 className="text-xl font-bold text-blue-600">GYMmitra</h1>
         </div>
         <h2 className="text-xl font-semibold text-gray-800 mb-1">Privacy Policy</h2>

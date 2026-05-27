@@ -259,7 +259,7 @@ export default function MemberProfile() {
 
   if (!member) return (
     <div className="p-6 text-center text-gray-400 pb-24">
-      <p className="text-4xl mb-2">💪</p>
+      <img src="/joomla.png" alt="logo" className="w-14 h-14 object-contain mx-auto mb-2" />
       <p>Member not found</p>
       <button onClick={() => navigate('/members')} className="mt-4 text-blue-600 text-sm">← Back</button>
     </div>

@@ -37,7 +37,7 @@ export default function Login() {
     <div className="min-h-screen flex" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #1e3a5f 100%)' }}>
       {/* Left decorative side — hidden on mobile */}
       <div className="hidden md:flex flex-1 flex-col items-center justify-center p-12 text-white">
-        <div className="text-6xl mb-6">💪</div>
+        <img src="/joomla.png" alt="logo" className="w-20 h-20 object-contain mx-auto mb-6" />
         <h1 className="text-4xl font-bold mb-3">Smart Gym Management</h1>
         <p className="text-blue-300 text-lg text-center max-w-xs">
           Smart gym management for local gym owners

@@ -74,7 +74,7 @@ function DesktopSidebar() {
       style={{ background: 'linear-gradient(180deg, #0f172a 0%, #1e1b4b 60%, #1e3a5f 100%)' }}>
       <div className="p-5 border-b border-blue-400 border-opacity-30">
         <div className="flex items-center gap-2">
-          <span className="text-2xl">💪</span>
+          <img src="/gym.png" alt="logo" className="w-7 h-7 object-contain" />
           <div>
             <h1 className="text-sm font-bold text-white truncate max-w-36">{gymName}</h1>
             <p className="text-xs text-blue-200 truncate max-w-36">{currentUser?.email}</p>

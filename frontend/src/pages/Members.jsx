@@ -286,7 +286,7 @@ export default function Members() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
-          <p className="text-5xl mb-3">💪</p>
+          <img src="/joomla.png" alt="logo" className="w-16 h-16 object-contain mx-auto mb-3" />
           <p className="text-sm font-medium">No members found</p>
           <p className="text-xs mt-1">Add your first gym member to get started</p>
         </div>
