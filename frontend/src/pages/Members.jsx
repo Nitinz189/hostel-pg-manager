@@ -33,15 +33,11 @@ function validateMobile(mobile) {
 function exportToCSV(members) {
   const headers = ['Registration Number', 'Name', 'Mobile', 'Membership Type', 'Membership Fee', 'Joining Date', 'Expiry Date', 'Status', 'Notes']
   const rows = members.map(m => [
-    m.registrationNumber || '',
-    m.name || '',
-    m.mobile || '',
-    m.membershipType || '',
-    m.membershipFee || '',
+    m.registrationNumber || '', m.name || '', m.mobile || '',
+    m.membershipType || '', m.membershipFee || '',
     m.joiningDate ? new Date(m.joiningDate).toLocaleDateString('en-IN') : '',
     m.expiryDate ? new Date(m.expiryDate).toLocaleDateString('en-IN') : '',
-    m.status || '',
-    (m.notes || '').replace(/,/g, ';')
+    m.status || '', (m.notes || '').replace(/,/g, ';')
   ])
   const csvContent = [headers, ...rows].map(r => r.join(',')).join('\n')
   const blob = new Blob([csvContent], { type: 'text/csv' })
@@ -68,6 +64,20 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
   )
 }
 
+const avatarGradients = [
+  'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+  'linear-gradient(135deg, #8b5cf6, #6d28d9)',
+  'linear-gradient(135deg, #10b981, #059669)',
+  'linear-gradient(135deg, #f59e0b, #d97706)',
+  'linear-gradient(135deg, #ef4444, #dc2626)',
+  'linear-gradient(135deg, #06b6d4, #0891b2)',
+]
+
+function getGradient(name) {
+  const index = name.charCodeAt(0) % avatarGradients.length
+  return avatarGradients[index]
+}
+
 export default function Members() {
   const { currentUser } = useAuth()
   const navigate = useNavigate()
@@ -89,9 +99,7 @@ export default function Members() {
     try {
       const res = await axios.get(`${API}/members?ownerId=${currentUser.uid}`, { timeout: 60000 })
       setMembers(res.data)
-    } catch (err) {
-      console.log('Members fetch error:', err)
-    }
+    } catch (err) { console.log('Members fetch error:', err) }
     try {
       const duesRes = await axios.get(`${API}/dues?ownerId=${currentUser.uid}`)
       const duesMap = {}
@@ -101,68 +109,35 @@ export default function Members() {
         duesMap[memberId] += (due.amount - due.paidAmount)
       })
       setMemberDues(duesMap)
-    } catch (err) {
-      console.log('Dues fetch error:', err)
-    }
+    } catch (err) { console.log('Dues fetch error:', err) }
     setLoading(false)
   }
 
-  useEffect(() => {
-    if (currentUser) fetchMembers()
-  }, [currentUser])
+  useEffect(() => { if (currentUser) fetchMembers() }, [currentUser])
 
   function handleJoiningChange(date) {
-    const expiry = calculateExpiry(date, form.membershipType)
-    setForm({ ...form, joiningDate: date, expiryDate: expiry })
+    setForm({ ...form, joiningDate: date, expiryDate: calculateExpiry(date, form.membershipType) })
   }
 
   function handleTypeChange(type) {
-    const expiry = calculateExpiry(form.joiningDate, type)
-    setForm({ ...form, membershipType: type, expiryDate: expiry })
+    setForm({ ...form, membershipType: type, expiryDate: calculateExpiry(form.joiningDate, type) })
   }
 
   function handleMobileChange(val) {
     const cleaned = val.replace(/\D/g, '').substring(0, 10)
     setForm({...form, mobile: cleaned})
-    if (cleaned.length > 0) {
-      setMobileError(validateMobile(cleaned) || '')
-    } else {
-      setMobileError('')
-    }
+    setMobileError(cleaned.length > 0 ? (validateMobile(cleaned) || '') : '')
   }
 
   function openAdd() {
     if (isExpired) return toast.error('Your plan has expired. Contact admin.')
-    setEditing(null)
-    setForm(empty)
-    setMobileError('')
-    setShowModal(true)
-  }
-
-  function openEdit(member) {
-    if (isExpired) return toast.error('Your plan has expired. Contact admin.')
-    setEditing(member._id)
-    setForm({
-      name: member.name,
-      mobile: member.mobile,
-      registrationNumber: member.registrationNumber,
-      membershipType: member.membershipType || 'Monthly',
-      membershipFee: member.membershipFee,
-      joiningDate: member.joiningDate?.split('T')[0],
-      expiryDate: member.expiryDate?.split('T')[0],
-      notes: member.notes || ''
-    })
-    setMobileError('')
-    setShowModal(true)
+    setEditing(null); setForm(empty); setMobileError(''); setShowModal(true)
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
     const mobileErr = validateMobile(form.mobile)
-    if (mobileErr) {
-      setMobileError(mobileErr)
-      return
-    }
+    if (mobileErr) { setMobileError(mobileErr); return }
     try {
       if (editing) {
         await axios.put(`${API}/members/${editing}`, form)
@@ -171,26 +146,17 @@ export default function Members() {
         await axios.post(`${API}/members`, { ...form, ownerId: currentUser.uid, status: 'active' })
         toast.success('Member added!')
       }
-      setShowModal(false)
-      fetchMembers()
+      setShowModal(false); fetchMembers()
     } catch (err) {
-      if (err.response?.status === 403) {
-        toast.error(err.response.data.message)
-      } else {
-        toast.error('Something went wrong')
-      }
+      toast.error(err.response?.status === 403 ? err.response.data.message : 'Something went wrong')
     }
   }
 
   async function handleDelete(id) {
     try {
       await axios.delete(`${API}/members/${id}`)
-      toast.success('Member deleted!')
-      setConfirmDelete(null)
-      fetchMembers()
-    } catch (err) {
-      toast.error('Failed to delete')
-    }
+      toast.success('Member deleted!'); setConfirmDelete(null); fetchMembers()
+    } catch (err) { toast.error('Failed to delete') }
   }
 
   const planCounts = {
@@ -216,26 +182,26 @@ export default function Members() {
     return matchSearch && matchStatus && matchPlan
   })
 
-  const statusColor = {
-    active: 'border-green-200',
-    due_soon: 'border-yellow-200',
-    expired: 'border-red-200',
-    inactive: 'border-gray-200'
+  function getStatusInfo(status) {
+    const map = {
+      active:   { label: 'Active',   dot: 'bg-green-400',  text: 'text-green-600'  },
+      due_soon: { label: 'Expiring', dot: 'bg-yellow-400', text: 'text-yellow-600' },
+      expired:  { label: 'Expired',  dot: 'bg-red-400',    text: 'text-red-500'    },
+      inactive: { label: 'Inactive', dot: 'bg-gray-300',   text: 'text-gray-400'   },
+    }
+    return map[status] || map.inactive
   }
 
-  const statusBadge = {
-    active: 'bg-green-100 text-green-700',
-    due_soon: 'bg-yellow-100 text-yellow-700',
-    expired: 'bg-red-100 text-red-700',
-    inactive: 'bg-gray-100 text-gray-500'
-  }
-
-  const statusLabel = {
-    active: 'Active', due_soon: 'Expiring', expired: 'Expired', inactive: 'Inactive'
+  function getDaysInfo(member) {
+    if (!member.expiryDate) return null
+    const days = Math.ceil((new Date(member.expiryDate) - new Date()) / (1000 * 60 * 60 * 24))
+    if (member.status === 'expired') return { text: `Expired ${Math.abs(days)}d ago`, color: 'text-red-500' }
+    if (days <= 7) return { text: `${days}d left`, color: 'text-yellow-600' }
+    return { text: `${days} days left`, color: 'text-gray-400' }
   }
 
   return (
-    <div className="p-4 md:p-6 pb-24 md:pb-6">
+    <div className="pb-32 md:pb-8">
       {confirmDelete && (
         <ConfirmModal
           message={`Delete ${confirmDelete.name}? This cannot be undone.`}
@@ -244,84 +210,81 @@ export default function Members() {
         />
       )}
 
-      <div className="flex items-center justify-between mb-4">
+      {/* Header */}
+      <div className="px-4 pt-4 pb-3 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-800">Members</h1>
-          <p className="text-gray-500 text-sm">{members.length} total</p>
+          <h1 className="text-xl font-bold text-gray-900">Members</h1>
+          <p className="text-xs text-gray-400">{members.length} total members</p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() => exportToCSV(members)}
-            className="border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-xs font-medium hover:bg-gray-50 transition"
-          >
-            Export CSV
+          <button onClick={() => exportToCSV(members)}
+            className="border border-gray-200 text-gray-500 px-3 py-2 rounded-xl text-xs font-medium hover:bg-gray-50 transition">
+            Export
           </button>
-          <button
-            onClick={openAdd}
-            disabled={isExpired}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition ${isExpired ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
-          >
-            + Add Member
+          <button onClick={openAdd} disabled={isExpired}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${isExpired ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'text-white'}`}
+            style={!isExpired ? { background: 'linear-gradient(135deg, #1e40af, #7c3aed)' } : {}}>
+            + Add
           </button>
         </div>
       </div>
 
-      {/* Plan distribution pills */}
-      <div className="mb-4">
-        <p className="text-xs text-gray-400 font-medium mb-2 uppercase tracking-wide">Filter by Plan</p>
-        <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={() => setPlanFilter('all')}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${planFilter === 'all' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-          >
-            All ({members.length})
-          </button>
-          {Object.entries(planCounts).map(([plan, count]) => (
-            <button
-              key={plan}
-              onClick={() => setPlanFilter(planFilter === plan ? 'all' : plan)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${planFilter === plan ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
-            >
-              {plan} ({count})
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Status tabs + search */}
-      <div className="mb-4">
-        <p className="text-xs text-gray-400 font-medium mb-2 uppercase tracking-wide">Filter by Status</p>
-        <div className="flex flex-col sm:flex-row gap-3">
+      {/* Search */}
+      <div className="px-4 mb-3">
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
           <input
             type="text"
-            placeholder="Search by name, reg number, mobile..."
+            placeholder="Search name, reg number, mobile..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-white border border-gray-200 rounded-2xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <div className="flex gap-2">
-            {[
-              { value: 'all', label: `All (${members.length})` },
-              { value: 'active', label: `Active (${activeCount})` },
-              { value: 'inactive', label: `Inactive (${inactiveCount})` },
-            ].map(f => (
-              <button
-                key={f.value}
-                onClick={() => setStatusFilter(f.value)}
-                className={`px-3 py-2 rounded-xl text-xs font-medium transition whitespace-nowrap ${statusFilter === f.value ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
 
-      {/* Members Grid */}
+      {/* Status Filter */}
+      <div className="px-4 mb-3 flex gap-2 overflow-x-auto scrollbar-hide">
+        {[
+          { value: 'all', label: `All (${members.length})` },
+          { value: 'active', label: `Active (${activeCount})` },
+          { value: 'inactive', label: `Inactive (${inactiveCount})` },
+        ].map(f => (
+          <button key={f.value} onClick={() => setStatusFilter(f.value)}
+            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition whitespace-nowrap ${
+              statusFilter === f.value
+                ? 'text-white shadow-sm'
+                : 'bg-white border border-gray-200 text-gray-500'
+            }`}
+            style={statusFilter === f.value ? { background: 'linear-gradient(135deg, #1e40af, #7c3aed)' } : {}}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Plan Filter */}
+      <div className="px-4 mb-4 flex gap-2 overflow-x-auto scrollbar-hide">
+        <button onClick={() => setPlanFilter('all')}
+          className={`px-3 py-1 rounded-full text-xs font-medium transition whitespace-nowrap ${
+            planFilter === 'all' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500'
+          }`}>
+          All Plans
+        </button>
+        {Object.entries(planCounts).map(([plan, count]) => (
+          <button key={plan} onClick={() => setPlanFilter(planFilter === plan ? 'all' : plan)}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition whitespace-nowrap ${
+              planFilter === plan ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'
+            }`}>
+            {plan} ({count})
+          </button>
+        ))}
+      </div>
+
+      {/* Members List */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {[1,2,3,4,5,6].map(i => (
-            <div key={i} className="bg-white rounded-2xl p-4 border border-gray-100 animate-pulse h-28"></div>
+        <div className="px-4 space-y-3">
+          {[1,2,3,4,5].map(i => (
+            <div key={i} className="bg-white rounded-2xl p-4 animate-pulse h-20"></div>
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -331,123 +294,133 @@ export default function Members() {
           <p className="text-xs mt-1">Add your first gym member to get started</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {filtered.map(member => (
-            <div
-              key={member._id}
-              className={`border-2 rounded-2xl p-4 cursor-pointer transition hover:shadow-md bg-white ${statusColor[member.status] || 'border-gray-200'}`}
-              onClick={() => navigate(`/member/${member._id}`)}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 bg-blue-50 rounded-full flex items-center justify-center text-sm font-bold text-blue-600">
-                    {member.name.charAt(0).toUpperCase()}
+        <div className="px-4 space-y-2">
+          {filtered.map(member => {
+            const statusInfo = getStatusInfo(member.status)
+            const daysInfo = getDaysInfo(member)
+            return (
+              <div key={member._id}
+                onClick={() => navigate(`/member/${member._id}`)}
+                className="bg-white rounded-2xl px-4 py-3 flex items-center gap-3 cursor-pointer active:scale-98 transition-transform shadow-sm border border-gray-100">
+                {/* Avatar */}
+                <div className="w-11 h-11 rounded-full flex items-center justify-center text-base font-bold text-white flex-shrink-0"
+                  style={{ background: getGradient(member.name) }}>
+                  {member.name.charAt(0).toUpperCase()}
+                </div>
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <p className="text-sm font-semibold text-gray-900 capitalize truncate">{member.name}</p>
+                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusInfo.dot}`}></div>
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-800 capitalize">{member.name}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-xs text-gray-400">#{member.registrationNumber}</p>
+                    <span className="text-gray-200">•</span>
+                    <p className="text-xs text-gray-400">{member.membershipType}</p>
+                    {daysInfo && (
+                      <>
+                        <span className="text-gray-200">•</span>
+                        <p className={`text-xs font-medium ${daysInfo.color}`}>{daysInfo.text}</p>
+                      </>
+                    )}
                   </div>
-                </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusBadge[member.status]}`}>
-                  {statusLabel[member.status]}
-                </span>
-              </div>
-              <div className="flex justify-between text-xs text-gray-400 mt-2 items-center">
-                <span>{member.membershipType}</span>
-                <div className="flex items-center gap-2">
                   {memberDues[member._id] > 0 && (
-                    <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full font-medium">
-                      Due ₹{memberDues[member._id]}
-                    </span>
+                    <p className="text-xs text-red-500 font-medium mt-0.5">
+                      ₹{memberDues[member._id].toLocaleString()} payment due
+                    </p>
                   )}
-                  <span>{member.expiryDate ? new Date(member.expiryDate).toLocaleDateString('en-IN') : 'N/A'}</span>
                 </div>
+                {/* Arrow */}
+                <span className="text-gray-300 text-sm flex-shrink-0">›</span>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
       {/* Add/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">
-              {editing ? 'Edit Member' : 'Add New Member'}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div>
-                <label className="text-sm text-gray-600 mb-1 block">Full Name</label>
-                <input
-                  required
-                  value={form.name}
-                  onChange={e => {
-                    const val = e.target.value
-                    const capitalized = val.charAt(0).toUpperCase() + val.slice(1)
-                    setForm({...form, name: capitalized})
-                  }}
-                  placeholder="Member full name"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="text-sm text-gray-600 mb-1 block">Mobile Number</label>
-                <input
-                  required
-                  value={form.mobile}
-                  onChange={e => handleMobileChange(e.target.value)}
-                  placeholder="10 digit Indian mobile number"
-                  maxLength={10}
-                  inputMode="numeric"
-                  className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${mobileError ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
-                />
-                {mobileError && <p className="text-xs text-red-500 mt-1">{mobileError}</p>}
-                {form.mobile.length === 10 && !mobileError && (
-                  <p className="text-xs text-green-500 mt-1">Valid mobile number</p>
-                )}
-              </div>
-              <div>
-                <label className="text-sm text-gray-600 mb-1 block">Registration Number</label>
-                <input required value={form.registrationNumber} onChange={e => setForm({...form, registrationNumber: e.target.value})} placeholder="e.g. GYM001" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="text-sm text-gray-600 mb-1 block">Membership Type</label>
-                <select value={form.membershipType} onChange={e => handleTypeChange(e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="Monthly">Monthly (1 month)</option>
-                  <option value="3 Months">3 Months</option>
-                  <option value="6 Months">6 Months</option>
-                  <option value="Yearly">Yearly (12 months)</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm text-gray-600 mb-1 block">Membership Fee (₹)</label>
-                <input required type="number" value={form.membershipFee} onChange={e => setForm({...form, membershipFee: e.target.value})} placeholder="e.g. 1000" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="text-sm text-gray-600 mb-1 block">Date of Joining</label>
-                <input required type="date" value={form.joiningDate} onChange={e => handleJoiningChange(e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="text-sm text-gray-600 mb-1 block">
-                  Expiry Date <span className="text-xs text-blue-500">(auto calculated)</span>
-                </label>
-                <input type="date" value={form.expiryDate} onChange={e => setForm({...form, expiryDate: e.target.value})} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="text-sm text-gray-600 mb-1 block">Notes (optional)</label>
-                <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} placeholder="Any notes" rows={2} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setShowModal(false)} className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm">Cancel</button>
-                <button
-                  type="submit"
-                  disabled={!!mobileError}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-medium ${mobileError ? 'bg-gray-200 text-gray-400' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
-                >
-                  {editing ? 'Save Changes' : 'Add Member'}
-                </button>
-              </div>
-            </form>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
+          <div className="bg-white rounded-t-3xl w-full max-w-lg max-h-[92vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white px-6 pt-4 pb-3 border-b border-gray-100">
+              <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-3"></div>
+              <h2 className="text-lg font-bold text-gray-900">
+                {editing ? 'Edit Member' : 'Add New Member'}
+              </h2>
+            </div>
+            <div className="px-6 py-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Full Name</label>
+                  <input required value={form.name}
+                    onChange={e => {
+                      const val = e.target.value
+                      setForm({...form, name: val.charAt(0).toUpperCase() + val.slice(1)})
+                    }}
+                    placeholder="Member full name"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Mobile Number</label>
+                  <input required value={form.mobile} onChange={e => handleMobileChange(e.target.value)}
+                    placeholder="10 digit mobile number" maxLength={10} inputMode="numeric"
+                    className={`w-full bg-gray-50 border rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${mobileError ? 'border-red-300' : 'border-gray-200'}`} />
+                  {mobileError && <p className="text-xs text-red-500 mt-1 px-1">{mobileError}</p>}
+                  {form.mobile.length === 10 && !mobileError && <p className="text-xs text-green-500 mt-1 px-1">✓ Valid number</p>}
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Registration Number</label>
+                  <input required value={form.registrationNumber}
+                    onChange={e => setForm({...form, registrationNumber: e.target.value})}
+                    placeholder="e.g. GYM001"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Membership Type</label>
+                  <select value={form.membershipType} onChange={e => handleTypeChange(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="Monthly">Monthly (1 month)</option>
+                    <option value="3 Months">3 Months</option>
+                    <option value="6 Months">6 Months</option>
+                    <option value="Yearly">Yearly (12 months)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Membership Fee (₹)</label>
+                  <input required type="number" value={form.membershipFee}
+                    onChange={e => setForm({...form, membershipFee: e.target.value})}
+                    placeholder="e.g. 1000"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Date of Joining</label>
+                  <input required type="date" value={form.joiningDate} onChange={e => handleJoiningChange(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
+                    Expiry Date <span className="text-blue-400 normal-case">(auto calculated)</span>
+                  </label>
+                  <input type="date" value={form.expiryDate} onChange={e => setForm({...form, expiryDate: e.target.value})}
+                    className="w-full bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 text-sm text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Notes (optional)</label>
+                  <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})}
+                    placeholder="Any notes about this member" rows={2}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div className="flex gap-3 pt-2 pb-2">
+                  <button type="button" onClick={() => setShowModal(false)}
+                    className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-2xl text-sm font-medium">Cancel</button>
+                  <button type="submit" disabled={!!mobileError}
+                    className={`flex-1 py-3 rounded-2xl text-sm font-bold text-white ${mobileError ? 'bg-gray-300' : ''}`}
+                    style={!mobileError ? { background: 'linear-gradient(135deg, #1e40af, #7c3aed)' } : {}}>
+                    {editing ? 'Save Changes' : 'Add Member'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
