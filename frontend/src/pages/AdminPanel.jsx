@@ -4,7 +4,7 @@ import axios from 'axios'
 import toast from 'react-hot-toast'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useNavigate } from 'react-router-dom'
-const navigate = useNavigate()
+
 
 const API = import.meta.env.VITE_API_URL
 const ADMIN_EMAIL = 'vnitin398@gmail.com'
