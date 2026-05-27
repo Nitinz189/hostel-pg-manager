@@ -57,7 +57,7 @@ app.use('/api/dues', dueRoutes)
 
 // Self ping
 setInterval(() => {
-  https.get(`https://fitfaatgym.onrender.com/health`, () => {}).on('error', () => {})
+  https.get(`https://hostel-pg-manager.onrender.com/health`, () => {}).on('error', () => {})
 }, 4 * 60 * 1000)
 
 const PORT = process.env.PORT || 5000
