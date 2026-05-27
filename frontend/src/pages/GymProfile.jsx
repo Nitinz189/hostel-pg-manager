@@ -130,7 +130,7 @@ export default function GymProfile() {
           </span>
         </div>
 
-        <div className="flex gap-4 flex-wrap">
+        <div className="flex gap-4 flex-wrap mb-4">
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-blue-300"></div>
             <span className="text-xs text-blue-100">{owner.email}</span>
@@ -141,6 +141,24 @@ export default function GymProfile() {
               <span className="text-xs text-blue-100">{owner.mobile}</span>
             </div>
           )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => window.open(`tel:${owner.mobile}`, '_self')}
+            className="bg-white bg-opacity-10 border border-white border-opacity-20 text-white py-2.5 rounded-xl text-xs font-medium hover:bg-opacity-20 transition flex items-center justify-center gap-2">
+            📞 Call
+          </button>
+          <button
+            onClick={() => {
+              const message = `Hi ${owner.propertyName || owner.name},\n\nYour Smart Gym Management plan expires in ${daysLeft} days.\n\nPlease renew your plan to continue using the app.\n\nThank you!`
+              const phone = owner.mobile?.replace(/[^0-9]/g, '')
+              window.open(`https://wa.me/${phone?.startsWith('91') ? phone : `91${phone}`}?text=${encodeURIComponent(message)}`, '_blank')
+            }}
+            className="bg-white bg-opacity-10 border border-white border-opacity-20 text-white py-2.5 rounded-xl text-xs font-medium hover:bg-opacity-20 transition flex items-center justify-center gap-2">
+            💬 WhatsApp
+          </button>
         </div>
       </div>
 
