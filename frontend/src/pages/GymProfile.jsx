@@ -13,26 +13,27 @@ export default function GymProfile() {
   const [loading, setLoading] = useState(true)
   const [editModal, setEditModal] = useState(null)
   const [editForm, setEditForm] = useState({ amount: '', notes: '', paidOn: '' })
+  const [planModal, setPlanModal] = useState(false)
+  const [planForm, setPlanForm] = useState({ plan: 'basic', planEndDate: '', memberLimit: '100' })
 
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true)
-      try {
-        const [ownersRes, revenueRes] = await Promise.all([
-          axios.get(`${API}/admin/owners`),
-          axios.get(`${API}/admin/revenue`)
-        ])
-        const found = ownersRes.data.owners.find(o => o.firebaseUid === id)
-        setOwner(found)
-        const gymRevenue = revenueRes.data.revenue.filter(r =>
-          r.gymmitraId === found?.gymmitraId || r.gymName === found?.propertyName
-        )
-        setRevenue(gymRevenue)
-      } catch { toast.error('Failed to load') }
-      setLoading(false)
-    }
-    fetchData()
-  }, [id])
+  async function fetchData() {
+    setLoading(true)
+    try {
+      const [ownersRes, revenueRes] = await Promise.all([
+        axios.get(`${API}/admin/owners`),
+        axios.get(`${API}/admin/revenue`)
+      ])
+      const found = ownersRes.data.owners.find(o => o.firebaseUid === id)
+      setOwner(found)
+      const gymRevenue = revenueRes.data.revenue.filter(r =>
+        r.gymmitraId === found?.gymmitraId || r.gymName === found?.propertyName
+      )
+      setRevenue(gymRevenue)
+    } catch { toast.error('Failed to load') }
+    setLoading(false)
+  }
+
+  useEffect(() => { fetchData() }, [id])
 
   async function editRevenue(revId) {
     try {
@@ -52,6 +53,20 @@ export default function GymProfile() {
       await axios.delete(`${API}/admin/revenue/${revId}`)
       toast.success('Deleted!'); setRevenue(revenue.filter(r => r._id !== revId))
     } catch { toast.error('Failed') }
+  }
+
+  async function savePlan() {
+    try {
+      await axios.put(`${API}/admin/owners/${id}`, {
+        plan: planForm.plan,
+        planEndDate: new Date(planForm.planEndDate),
+        memberLimit: parseInt(planForm.memberLimit),
+        isApproved: true
+      })
+      toast.success('Plan updated!')
+      setPlanModal(false)
+      fetchData()
+    } catch { toast.error('Failed to update plan') }
   }
 
   const totalPaid = revenue.reduce((sum, r) => sum + (r.amount || 0), 0)
@@ -117,9 +132,9 @@ export default function GymProfile() {
           {owner.mobile && <p className="text-xs text-blue-200">{owner.mobile}</p>}
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <button onClick={() => window.open(`tel:${owner.mobile}`, '_self')}
-            className="bg-white bg-opacity-10 border border-white border-opacity-20 text-white py-2.5 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-opacity-20 transition">
+            className="bg-white bg-opacity-10 border border-white border-opacity-20 text-white py-2.5 rounded-2xl text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-opacity-20 transition">
             📞 Call
           </button>
           <button onClick={() => {
@@ -127,8 +142,19 @@ export default function GymProfile() {
             const phone = owner.mobile?.replace(/[^0-9]/g, '')
             window.open(`https://wa.me/${phone?.startsWith('91') ? phone : `91${phone}`}?text=${encodeURIComponent(message)}`, '_blank')
           }}
-            className="bg-white bg-opacity-10 border border-white border-opacity-20 text-white py-2.5 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-opacity-20 transition">
+            className="bg-white bg-opacity-10 border border-white border-opacity-20 text-white py-2.5 rounded-2xl text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-opacity-20 transition">
             💬 WhatsApp
+          </button>
+          <button onClick={() => {
+            setPlanForm({
+              plan: owner.plan || 'basic',
+              planEndDate: owner.planEndDate ? new Date(owner.planEndDate).toISOString().split('T')[0] : '',
+              memberLimit: String(owner.memberLimit || 100)
+            })
+            setPlanModal(true)
+          }}
+            className="bg-white bg-opacity-10 border border-white border-opacity-20 text-white py-2.5 rounded-2xl text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-opacity-20 transition">
+            ✏️ Edit Plan
           </button>
         </div>
       </div>
@@ -210,7 +236,47 @@ export default function GymProfile() {
         )}
       </div>
 
-      {/* Edit Modal */}
+      {/* Edit Plan Modal */}
+      {planModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
+          <div className="bg-white rounded-t-3xl p-6 w-full max-w-lg">
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4"></div>
+            <h2 className="text-base font-bold text-gray-900 mb-4">Edit Plan — {owner.propertyName || owner.name}</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Plan Type</label>
+                <select value={planForm.plan} onChange={e => setPlanForm({...planForm, plan: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="free">Free (10 members)</option>
+                  <option value="basic">Basic (100 members)</option>
+                  <option value="pro">Pro (unlimited)</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Plan End Date</label>
+                <input type="date" value={planForm.planEndDate}
+                  onChange={e => setPlanForm({...planForm, planEndDate: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Member Limit</label>
+                <input type="number" value={planForm.memberLimit}
+                  onChange={e => setPlanForm({...planForm, memberLimit: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setPlanModal(false)}
+                className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-2xl text-sm font-medium">Cancel</button>
+              <button onClick={savePlan}
+                className="flex-1 text-white py-3 rounded-2xl text-sm font-bold"
+                style={{ background: 'linear-gradient(135deg, #1e40af, #7c3aed)' }}>Save Plan</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Revenue Modal */}
       {editModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
           <div className="bg-white rounded-t-3xl p-6 w-full max-w-lg">

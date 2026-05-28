@@ -142,6 +142,19 @@ router.post('/revenue', async (req, res) => {
   }
 })
 
+// Edit revenue entry
+router.put('/revenue/:id', async (req, res) => {
+  try {
+    const revenue = await AdminRevenue.findByIdAndUpdate(
+      req.params.id, req.body, { new: true }
+    )
+    if (!revenue) return res.status(404).json({ message: 'Not found' })
+    res.json(revenue)
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
 // Delete revenue entry
 router.delete('/revenue/:id', async (req, res) => {
   try {
