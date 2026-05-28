@@ -5,18 +5,18 @@ import toast from 'react-hot-toast'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useNavigate } from 'react-router-dom'
 
-
 const API = import.meta.env.VITE_API_URL
 const ADMIN_EMAIL = 'vnitin398@gmail.com'
 
 function ConfirmModal({ message, onConfirm, onCancel }) {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
+      <div className="bg-white rounded-t-3xl p-6 w-full max-w-lg">
+        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4"></div>
         <p className="text-sm text-gray-700 mb-5 text-center">{message}</p>
         <div className="flex gap-3">
-          <button onClick={onCancel} className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm">Cancel</button>
-          <button onClick={onConfirm} className="flex-1 bg-red-600 text-white py-2.5 rounded-xl text-sm font-medium">Confirm</button>
+          <button onClick={onCancel} className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-2xl text-sm font-medium">Cancel</button>
+          <button onClick={onConfirm} className="flex-1 bg-red-500 text-white py-3 rounded-2xl text-sm font-bold">Confirm</button>
         </div>
       </div>
     </div>
@@ -34,10 +34,9 @@ export default function AdminPanel() {
   const [gymFilter, setGymFilter] = useState('all')
   const [confirmAction, setConfirmAction] = useState(null)
   const [extendModal, setExtendModal] = useState(null)
-  const [extendForm, setExtendForm] = useState({ planMonths: '3', plan: 'basic', memberLimit: '100', paymentAmount: '' })
+  const [extendForm, setExtendForm] = useState({ planMonths: '3', planDays: '', plan: 'basic', memberLimit: '100', paymentAmount: '' })
   const [addRevenueModal, setAddRevenueModal] = useState(false)
   const [revenueForm, setRevenueForm] = useState({ gymmitraId: '', gymName: '', amount: '', planMonths: '', notes: '' })
-
   const navigate = useNavigate()
   const isAdmin = currentUser?.email === ADMIN_EMAIL
 
@@ -51,63 +50,50 @@ export default function AdminPanel() {
       setStats(ownersRes.data.stats)
       setAdminRevenue(revenueRes.data.revenue)
       setAdminStats({ total: revenueRes.data.total, thisMonthRevenue: revenueRes.data.thisMonthRevenue })
-    } catch (err) {
-      toast.error('Failed to load admin data')
-    }
+    } catch (err) { toast.error('Failed to load admin data') }
     setLoading(false)
   }
 
-  useEffect(() => {
-    if (currentUser && isAdmin) fetchAll()
-  }, [currentUser])
+  useEffect(() => { if (currentUser && isAdmin) fetchAll() }, [currentUser])
 
   async function approveOwner(firebaseUid) {
     try {
       await axios.put(`${API}/admin/owners/${firebaseUid}/approve`)
-      toast.success('Owner approved!')
-      fetchAll()
-    } catch (err) {
-      toast.error('Failed to approve')
-    }
+      toast.success('Approved!'); fetchAll()
+    } catch { toast.error('Failed') }
   }
 
   async function extendPlan(firebaseUid) {
     try {
-      await axios.put(`${API}/admin/owners/${firebaseUid}`, {
+      const payload = {
         plan: extendForm.plan,
         memberLimit: parseInt(extendForm.memberLimit),
-        planMonths: parseInt(extendForm.planMonths),
+        isApproved: true,
         paymentAmount: extendForm.paymentAmount ? parseInt(extendForm.paymentAmount) : null,
-        isApproved: true
-      })
-      toast.success('Plan extended!')
-      setExtendModal(null)
-      fetchAll()
-    } catch (err) {
-      toast.error('Failed to extend plan')
-    }
+      }
+      // Use days if provided, otherwise months
+      if (extendForm.planDays && parseInt(extendForm.planDays) > 0) {
+        payload.planDays = parseInt(extendForm.planDays)
+      } else {
+        payload.planMonths = parseInt(extendForm.planMonths)
+      }
+      await axios.put(`${API}/admin/owners/${firebaseUid}`, payload)
+      toast.success('Plan extended!'); setExtendModal(null); fetchAll()
+    } catch { toast.error('Failed to extend') }
   }
 
   async function revokeOwner(firebaseUid) {
     try {
       await axios.put(`${API}/admin/owners/${firebaseUid}`, { isApproved: false })
-      toast.success('Access revoked!')
-      setConfirmAction(null)
-      fetchAll()
-    } catch (err) {
-      toast.error('Failed to revoke')
-    }
+      toast.success('Revoked!'); setConfirmAction(null); fetchAll()
+    } catch { toast.error('Failed') }
   }
 
   async function deleteOwner(firebaseUid) {
     try {
       await axios.delete(`${API}/admin/owners/${firebaseUid}`)
-      toast.success('Owner deleted!')
-      setConfirmAction(null)
-      fetchAll()
-    } catch (err) {
-      toast.error('Failed to delete')
-    }
+      toast.success('Deleted!'); setConfirmAction(null); fetchAll()
+    } catch { toast.error('Failed') }
   }
 
   async function addRevenue(e) {
@@ -115,51 +101,37 @@ export default function AdminPanel() {
     try {
       const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' })
       await axios.post(`${API}/admin/revenue`, {
-        ...revenueForm,
-        amount: parseInt(revenueForm.amount),
-        planMonths: parseInt(revenueForm.planMonths),
-        month: currentMonth,
-        paidOn: new Date()
+        ...revenueForm, amount: parseInt(revenueForm.amount),
+        planMonths: parseInt(revenueForm.planMonths), month: currentMonth, paidOn: new Date()
       })
-      toast.success('Revenue logged!')
-      setAddRevenueModal(false)
-      setRevenueForm({ gymmitraId: '', gymName: '', amount: '', planMonths: '', notes: '' })
-      fetchAll()
-    } catch (err) {
-      toast.error('Failed to log revenue')
-    }
+      toast.success('Logged!'); setAddRevenueModal(false)
+      setRevenueForm({ gymmitraId: '', gymName: '', amount: '', planMonths: '', notes: '' }); fetchAll()
+    } catch { toast.error('Failed') }
   }
 
   async function deleteRevenue(id) {
     try {
       await axios.delete(`${API}/admin/revenue/${id}`)
-      toast.success('Deleted!')
-      fetchAll()
-    } catch (err) {
-      toast.error('Failed to delete')
-    }
+      toast.success('Deleted!'); fetchAll()
+    } catch { toast.error('Failed') }
   }
 
   if (!isAdmin) return (
     <div className="p-6 text-center">
       <div className="text-5xl mb-4">🚫</div>
-      <h1 className="text-xl font-semibold text-gray-800 mb-2">Access Denied</h1>
+      <h1 className="text-xl font-semibold text-gray-800">Access Denied</h1>
     </div>
   )
 
   const filteredOwners = owners.filter(o => {
     if (gymFilter === 'pending') return !o.isApproved
-    if (gymFilter === 'active') {
-      return o.isApproved && o.planEndDate && new Date(o.planEndDate) > new Date()
-    }
+    if (gymFilter === 'active') return o.isApproved && o.planEndDate && new Date(o.planEndDate) > new Date()
     if (gymFilter === 'expiring') {
       if (!o.planEndDate) return false
       const days = Math.ceil((new Date(o.planEndDate) - new Date()) / (1000 * 60 * 60 * 24))
       return days > 0 && days <= 30
     }
-    if (gymFilter === 'expired') {
-      return o.planEndDate && new Date(o.planEndDate) < new Date()
-    }
+    if (gymFilter === 'expired') return o.planEndDate && new Date(o.planEndDate) < new Date()
     return true
   })
 
@@ -171,79 +143,67 @@ export default function AdminPanel() {
   }, []).slice(-6)
 
   return (
-    <div className="p-4 md:p-6 pb-24 md:pb-6">
-      {confirmAction && (
-        <ConfirmModal
-          message={confirmAction.message}
-          onConfirm={confirmAction.action}
-          onCancel={() => setConfirmAction(null)}
-        />
-      )}
+    <div className="pb-32 md:pb-8 max-w-4xl mx-auto">
+      {confirmAction && <ConfirmModal message={confirmAction.message} onConfirm={confirmAction.action} onCancel={() => setConfirmAction(null)} />}
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-800">Admin Panel</h1>
-        <p className="text-gray-500 text-sm">GYMmitra business dashboard</p>
+      {/* Hero */}
+      <div className="mx-4 mt-4 mb-4 rounded-3xl p-5 text-white relative overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #1e3a5f 100%)' }}>
+        <p className="text-xs text-blue-300 font-medium mb-1">Admin Dashboard</p>
+        <p className="text-2xl font-bold mb-3">Smart Gym Management</p>
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { label: 'Total', value: stats.totalOwners, color: 'text-blue-300' },
+            { label: 'Active', value: stats.activeOwners, color: 'text-green-300' },
+            { label: 'Pending', value: stats.pendingOwners, color: 'text-yellow-300' },
+            { label: 'Expiring', value: stats.expiringThisMonth, color: 'text-red-300' },
+          ].map((s, i) => (
+            <div key={i} className="bg-white bg-opacity-10 rounded-2xl px-3 py-2 text-center">
+              <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
+              <p className="text-xs text-blue-200">{s.label}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6 border-b border-gray-100">
+      <div className="mx-4 mb-4 flex gap-2">
         {[
           { value: 'overview', label: 'Overview' },
           { value: 'gyms', label: `Gyms (${stats.totalOwners})` },
-          { value: 'revenue', label: 'Your Revenue' },
+          { value: 'revenue', label: 'Revenue' },
         ].map(tab => (
-          <button
-            key={tab.value}
-            onClick={() => setActiveTab(tab.value)}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition ${
-              activeTab === tab.value
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+          <button key={tab.value} onClick={() => setActiveTab(tab.value)}
+            className={`px-4 py-2 rounded-2xl text-xs font-semibold transition ${
+              activeTab === tab.value ? 'text-white' : 'bg-white border border-gray-200 text-gray-500'
             }`}
-          >
+            style={activeTab === tab.value ? { background: 'linear-gradient(135deg, #1e40af, #7c3aed)' } : {}}>
             {tab.label}
           </button>
         ))}
       </div>
 
-      {/* Overview Tab */}
+      {/* Overview */}
       {activeTab === 'overview' && (
-        <div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            {[
-              { label: 'Total Gyms', value: stats.totalOwners, color: 'blue' },
-              { label: 'Active Gyms', value: stats.activeOwners, color: 'green' },
-              { label: 'Pending Approval', value: stats.pendingOwners, color: 'yellow' },
-              { label: 'Expiring This Month', value: stats.expiringThisMonth, color: 'red' },
-            ].map((card, i) => (
-              <div key={i} className={`bg-${card.color}-50 border border-${card.color}-100 rounded-2xl p-4`}>
-                <p className="text-xs text-gray-500 mb-1">{card.label}</p>
-                <p className={`text-2xl font-bold text-${card.color}-600`}>{card.value}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <div className="bg-purple-50 border border-purple-100 rounded-2xl p-4">
-              <p className="text-xs text-gray-500 mb-1">Your Revenue This Month</p>
+        <div className="px-4 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+              <p className="text-xs text-gray-400 mb-1">This Month Revenue</p>
               <p className="text-2xl font-bold text-purple-600">₹{adminStats.thisMonthRevenue?.toLocaleString()}</p>
             </div>
-            <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4">
-              <p className="text-xs text-gray-500 mb-1">Total GYMmitra Revenue</p>
-              <p className="text-2xl font-bold text-indigo-600">₹{adminStats.total?.toLocaleString()}</p>
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+              <p className="text-xs text-gray-400 mb-1">All Time Revenue</p>
+              <p className="text-2xl font-bold text-blue-600">₹{adminStats.total?.toLocaleString()}</p>
             </div>
           </div>
-
           {stats.pendingOwners > 0 && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4">
               <p className="text-sm font-semibold text-yellow-700 mb-2">
-                {stats.pendingOwners} gym{stats.pendingOwners > 1 ? 's' : ''} waiting for approval
+                ⚠️ {stats.pendingOwners} gym{stats.pendingOwners > 1 ? 's' : ''} waiting for approval
               </p>
-              <button
-                onClick={() => { setActiveTab('gyms'); setGymFilter('pending') }}
-                className="text-xs bg-yellow-500 text-white px-3 py-1.5 rounded-lg hover:bg-yellow-600"
-              >
-                Review Now
+              <button onClick={() => { setActiveTab('gyms'); setGymFilter('pending') }}
+                className="text-xs bg-yellow-500 text-white px-3 py-1.5 rounded-xl font-medium">
+                Review Now →
               </button>
             </div>
           )}
@@ -252,8 +212,8 @@ export default function AdminPanel() {
 
       {/* Gyms Tab */}
       {activeTab === 'gyms' && (
-        <div>
-          <div className="flex gap-2 mb-4 flex-wrap">
+        <div className="px-4">
+          <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-hide">
             {[
               { value: 'all', label: 'All' },
               { value: 'pending', label: `Pending (${stats.pendingOwners})` },
@@ -261,13 +221,11 @@ export default function AdminPanel() {
               { value: 'expiring', label: `Expiring (${stats.expiringThisMonth})` },
               { value: 'expired', label: 'Expired' },
             ].map(f => (
-              <button
-                key={f.value}
-                onClick={() => setGymFilter(f.value)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition ${
-                  gymFilter === f.value ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+              <button key={f.value} onClick={() => setGymFilter(f.value)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+                  gymFilter === f.value ? 'text-white' : 'bg-white border border-gray-200 text-gray-500'
                 }`}
-              >
+                style={gymFilter === f.value ? { background: 'linear-gradient(135deg, #1e40af, #7c3aed)' } : {}}>
                 {f.label}
               </button>
             ))}
@@ -275,7 +233,7 @@ export default function AdminPanel() {
 
           {loading ? (
             <div className="space-y-3">
-              {[1,2,3].map(i => <div key={i} className="bg-white rounded-2xl p-4 border border-gray-100 animate-pulse h-24"></div>)}
+              {[1,2,3].map(i => <div key={i} className="bg-white rounded-2xl h-24 animate-pulse"></div>)}
             </div>
           ) : filteredOwners.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
@@ -288,27 +246,24 @@ export default function AdminPanel() {
                 const daysLeft = owner.planEndDate
                   ? Math.ceil((new Date(owner.planEndDate) - new Date()) / (1000 * 60 * 60 * 24))
                   : null
-
                 return (
-                  <div key={owner._id} className={`bg-white border rounded-2xl p-4 ${!owner.isApproved ? 'border-yellow-200' : 'border-gray-100'}`}>
-                    <div className="flex items-start justify-between flex-wrap gap-3 mb-3">
+                  <div key={owner._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                    <div className="flex items-start justify-between mb-3">
                       <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="text-sm font-semibold text-gray-800 cursor-pointer text-blue-600 hover:underline"
-  onClick={() => navigate(`/admin/gym/${owner.firebaseUid}`)}>
-  {owner.propertyName || owner.name}
-</p>
-                          {owner.gymmitraId && (
-                            <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-mono">
-                              {owner.gymmitraId}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-400">{owner.email} • {owner.mobile}</p>
+                        <button onClick={() => navigate(`/admin/gym/${owner.firebaseUid}`)}
+                          className="text-sm font-bold text-blue-600 hover:underline text-left">
+                          {owner.propertyName || owner.name}
+                        </button>
+                        {owner.gymmitraId && (
+                          <span className="ml-2 text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-mono">
+                            {owner.gymmitraId}
+                          </span>
+                        )}
+                        <p className="text-xs text-gray-400 mt-0.5">{owner.email} · {owner.mobile}</p>
                         <p className="text-xs text-gray-400">{owner.address?.city}{owner.address?.state ? `, ${owner.address.state}` : ''}</p>
                       </div>
-                      <div className="text-right">
-                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                      <div className="text-right flex-shrink-0 ml-3">
+                        <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
                           !owner.isApproved ? 'bg-yellow-100 text-yellow-700' :
                           daysLeft !== null && daysLeft < 0 ? 'bg-red-100 text-red-600' :
                           daysLeft !== null && daysLeft <= 7 ? 'bg-orange-100 text-orange-600' :
@@ -318,52 +273,37 @@ export default function AdminPanel() {
                            daysLeft !== null && daysLeft < 0 ? 'Expired' :
                            daysLeft !== null ? `${daysLeft}d left` : 'No plan'}
                         </span>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {owner.memberCount || 0}/{owner.memberLimit || 10} members
-                        </p>
+                        <p className="text-xs text-gray-400 mt-1">{owner.memberCount || 0}/{owner.memberLimit || 10} members</p>
                       </div>
                     </div>
-
                     <div className="flex flex-wrap gap-2">
                       {!owner.isApproved && (
-                        <button
-                          onClick={() => approveOwner(owner.firebaseUid)}
-                          className="bg-green-500 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-green-600"
-                        >
-                          Approve
+                        <button onClick={() => approveOwner(owner.firebaseUid)}
+                          className="bg-green-500 text-white text-xs px-3 py-1.5 rounded-xl font-medium">
+                          ✓ Approve
                         </button>
                       )}
-
-                      <button
-                        onClick={() => {
-                          setExtendModal(owner)
-                          setExtendForm({ planMonths: '3', plan: owner.plan || 'basic', memberLimit: String(owner.memberLimit || 100), paymentAmount: '' })
-                        }}
-                        className="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-blue-700"
-                      >
+                      <button onClick={() => {
+                        setExtendModal(owner)
+                        setExtendForm({ planMonths: '3', planDays: '', plan: owner.plan || 'basic', memberLimit: String(owner.memberLimit || 100), paymentAmount: '' })
+                      }}
+                        className="text-white text-xs px-3 py-1.5 rounded-xl font-medium"
+                        style={{ background: 'linear-gradient(135deg, #1e40af, #7c3aed)' }}>
                         Extend Plan
                       </button>
-
                       {owner.isApproved && owner.email !== ADMIN_EMAIL && (
-                        <button
-                          onClick={() => setConfirmAction({
-                            message: `Revoke access for ${owner.propertyName || owner.name}?`,
-                            action: () => revokeOwner(owner.firebaseUid)
-                          })}
-                          className="border border-yellow-200 text-yellow-600 text-xs px-3 py-1.5 rounded-lg hover:bg-yellow-50"
-                        >
+                        <button onClick={() => setConfirmAction({
+                          message: `Revoke access for ${owner.propertyName || owner.name}?`,
+                          action: () => revokeOwner(owner.firebaseUid)
+                        })} className="border border-yellow-200 text-yellow-600 text-xs px-3 py-1.5 rounded-xl">
                           Revoke
                         </button>
                       )}
-
                       {owner.email !== ADMIN_EMAIL && (
-                        <button
-                          onClick={() => setConfirmAction({
-                            message: `Delete ${owner.propertyName || owner.name} and ALL their data permanently?`,
-                            action: () => deleteOwner(owner.firebaseUid)
-                          })}
-                          className="border border-red-200 text-red-500 text-xs px-3 py-1.5 rounded-lg hover:bg-red-50 ml-auto"
-                        >
+                        <button onClick={() => setConfirmAction({
+                          message: `Delete ${owner.propertyName || owner.name} permanently?`,
+                          action: () => deleteOwner(owner.firebaseUid)
+                        })} className="border border-red-200 text-red-400 text-xs px-3 py-1.5 rounded-xl ml-auto">
                           Delete
                         </button>
                       )}
@@ -378,67 +318,80 @@ export default function AdminPanel() {
 
       {/* Revenue Tab */}
       {activeTab === 'revenue' && (
-        <div>
+        <div className="px-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-sm font-semibold text-gray-700">Your GYMmitra Income</p>
-              <p className="text-xs text-gray-400">Payments received from gym owners</p>
+              <p className="text-sm font-bold text-gray-800">Your Income</p>
+              <p className="text-xs text-gray-400">Payments from gym owners</p>
             </div>
-            <button
-              onClick={() => setAddRevenueModal(true)}
-              className="bg-blue-600 text-white px-3 py-2 rounded-xl text-xs font-medium hover:bg-blue-700"
-            >
+            <button onClick={() => setAddRevenueModal(true)}
+              className="text-white text-xs px-4 py-2 rounded-xl font-semibold"
+              style={{ background: 'linear-gradient(135deg, #1e40af, #7c3aed)' }}>
               + Log Payment
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <div className="bg-green-50 border border-green-100 rounded-2xl p-4">
-              <p className="text-xs text-gray-500 mb-1">This Month</p>
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+              <p className="text-xs text-gray-400 mb-1">This Month</p>
               <p className="text-2xl font-bold text-green-600">₹{adminStats.thisMonthRevenue?.toLocaleString()}</p>
             </div>
-            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
-              <p className="text-xs text-gray-500 mb-1">All Time</p>
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+              <p className="text-xs text-gray-400 mb-1">All Time</p>
               <p className="text-2xl font-bold text-blue-600">₹{adminStats.total?.toLocaleString()}</p>
             </div>
           </div>
 
           {chartData.length > 0 && (
-            <div className="bg-white border border-gray-100 rounded-2xl p-5 mb-4">
-              <h2 className="text-sm font-semibold text-gray-700 mb-4">Monthly Income</h2>
+            <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 mb-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-1 h-5 bg-purple-400 rounded-full"></div>
+                <h2 className="text-sm font-bold text-gray-800">Monthly Income</h2>
+              </div>
               <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip formatter={v => [`₹${v}`, 'Income']} />
-                  <Bar dataKey="amount" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                <BarChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                  <Tooltip formatter={v => [`₹${v}`, 'Income']}
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} />
+                  <Bar dataKey="amount" radius={[8, 8, 0, 0]} fill="url(#adminGradient)" />
+                  <defs>
+                    <linearGradient id="adminGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#8b5cf6" />
+                      <stop offset="100%" stopColor="#6d28d9" />
+                    </linearGradient>
+                  </defs>
                 </BarChart>
               </ResponsiveContainer>
             </div>
           )}
 
-          <div className="bg-white border border-gray-100 rounded-2xl p-5">
-            <h2 className="text-sm font-semibold text-gray-700 mb-4">Payment Log</h2>
+          <div className="bg-white rounded-3xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1 h-5 bg-green-400 rounded-full"></div>
+              <h2 className="text-sm font-bold text-gray-800">Payment Log</h2>
+            </div>
             {adminRevenue.length === 0 ? (
               <div className="text-center py-8 text-gray-400">
                 <p className="text-3xl mb-2">💰</p>
                 <p className="text-sm">No payments logged yet</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {adminRevenue.map(r => (
-                  <div key={r._id} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
+                  <div key={r._id} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
                     <div>
-                      <p className="text-sm font-medium text-gray-700">{r.gymName}</p>
+                      <p className="text-sm font-semibold text-gray-800">{r.gymName}</p>
                       <p className="text-xs text-gray-400">
-                        {r.gymmitraId} • {r.planMonths} months • {r.paidOn ? new Date(r.paidOn).toLocaleDateString('en-IN') : ''}
+                        {r.gymmitraId} · {r.planMonths}mo · {r.paidOn ? new Date(r.paidOn).toLocaleDateString('en-IN') : ''}
                       </p>
                       {r.notes && <p className="text-xs text-gray-400">{r.notes}</p>}
                     </div>
                     <div className="flex items-center gap-3">
-                      <p className="text-sm font-semibold text-green-600">₹{r.amount?.toLocaleString()}</p>
-                      <button onClick={() => deleteRevenue(r._id)} className="text-red-400 text-xs hover:text-red-600">Del</button>
+                      <p className="text-sm font-bold text-green-600">₹{r.amount?.toLocaleString()}</p>
+                      <button onClick={() => deleteRevenue(r._id)}
+                        className="w-7 h-7 border border-red-100 text-red-400 rounded-xl flex items-center justify-center text-xs hover:bg-red-50">✕</button>
                     </div>
                   </div>
                 ))}
@@ -450,23 +403,25 @@ export default function AdminPanel() {
 
       {/* Extend Plan Modal */}
       {extendModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
-            <h2 className="text-base font-semibold text-gray-800 mb-4">
-              Extend Plan — {extendModal.propertyName || extendModal.name}
-            </h2>
-            <div className="space-y-3">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
+          <div className="bg-white rounded-t-3xl p-6 w-full max-w-lg">
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4"></div>
+            <h2 className="text-base font-bold text-gray-900 mb-1">Extend Plan</h2>
+            <p className="text-sm text-gray-400 mb-4">{extendModal.propertyName || extendModal.name}</p>
+            <div className="space-y-4">
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Plan Type</label>
-                <select value={extendForm.plan} onChange={e => setExtendForm({...extendForm, plan: e.target.value})} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Plan Type</label>
+                <select value={extendForm.plan} onChange={e => setExtendForm({...extendForm, plan: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <option value="free">Free (10 members)</option>
                   <option value="basic">Basic (100 members)</option>
                   <option value="pro">Pro (unlimited)</option>
                 </select>
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Duration</label>
-                <select value={extendForm.planMonths} onChange={e => setExtendForm({...extendForm, planMonths: e.target.value})} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Duration by Months</label>
+                <select value={extendForm.planMonths} onChange={e => setExtendForm({...extendForm, planMonths: e.target.value, planDays: ''})}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <option value="1">1 Month</option>
                   <option value="3">3 Months</option>
                   <option value="6">6 Months</option>
@@ -474,17 +429,36 @@ export default function AdminPanel() {
                 </select>
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Member Limit</label>
-                <input type="number" value={extendForm.memberLimit} onChange={e => setExtendForm({...extendForm, memberLimit: e.target.value})} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
+                  Or Exact Days <span className="text-blue-400 normal-case">(overrides months if filled)</span>
+                </label>
+                <input type="number" value={extendForm.planDays}
+                  onChange={e => setExtendForm({...extendForm, planDays: e.target.value})}
+                  placeholder="e.g. 15 for 15 days trial"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Payment Received (₹) — optional</label>
-                <input type="number" value={extendForm.paymentAmount} onChange={e => setExtendForm({...extendForm, paymentAmount: e.target.value})} placeholder="Amount paid via UPI" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Member Limit</label>
+                <input type="number" value={extendForm.memberLimit}
+                  onChange={e => setExtendForm({...extendForm, memberLimit: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Payment Received (₹) — optional</label>
+                <input type="number" value={extendForm.paymentAmount}
+                  onChange={e => setExtendForm({...extendForm, paymentAmount: e.target.value})}
+                  placeholder="Amount paid via UPI"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
             </div>
-            <div className="flex gap-2 mt-4">
-              <button onClick={() => setExtendModal(null)} className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm">Cancel</button>
-              <button onClick={() => extendPlan(extendModal.firebaseUid)} className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium">Extend Plan</button>
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setExtendModal(null)}
+                className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-2xl text-sm font-medium">Cancel</button>
+              <button onClick={() => extendPlan(extendModal.firebaseUid)}
+                className="flex-1 text-white py-3 rounded-2xl text-sm font-bold"
+                style={{ background: 'linear-gradient(135deg, #1e40af, #7c3aed)' }}>
+                Extend Plan
+              </button>
             </div>
           </div>
         </div>
@@ -492,33 +466,48 @@ export default function AdminPanel() {
 
       {/* Add Revenue Modal */}
       {addRevenueModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
-            <h2 className="text-base font-semibold text-gray-800 mb-4">Log Payment Received</h2>
-            <form onSubmit={addRevenue} className="space-y-3">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
+          <div className="bg-white rounded-t-3xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4"></div>
+            <h2 className="text-base font-bold text-gray-900 mb-4">Log Payment Received</h2>
+            <form onSubmit={addRevenue} className="space-y-4">
+              {[
+                { label: 'GYMmitra ID', key: 'gymmitraId', placeholder: 'e.g. POWFKPT001' },
+                { label: 'Gym Name', key: 'gymName', placeholder: 'Gym name' },
+              ].map(f => (
+                <div key={f.key}>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">{f.label}</label>
+                  <input required value={revenueForm[f.key]} onChange={e => setRevenueForm({...revenueForm, [f.key]: e.target.value})}
+                    placeholder={f.placeholder}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+              ))}
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">GYMmitra ID</label>
-                <input required value={revenueForm.gymmitraId} onChange={e => setRevenueForm({...revenueForm, gymmitraId: e.target.value})} placeholder="e.g. POWFKPT001" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Amount (₹)</label>
+                <input required type="number" value={revenueForm.amount} onChange={e => setRevenueForm({...revenueForm, amount: e.target.value})}
+                  placeholder="e.g. 499"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Gym Name</label>
-                <input required value={revenueForm.gymName} onChange={e => setRevenueForm({...revenueForm, gymName: e.target.value})} placeholder="Gym name" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Plan Duration (months)</label>
+                <input required type="number" value={revenueForm.planMonths} onChange={e => setRevenueForm({...revenueForm, planMonths: e.target.value})}
+                  placeholder="e.g. 3"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Amount (₹)</label>
-                <input required type="number" value={revenueForm.amount} onChange={e => setRevenueForm({...revenueForm, amount: e.target.value})} placeholder="e.g. 499" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Notes (optional)</label>
+                <input value={revenueForm.notes} onChange={e => setRevenueForm({...revenueForm, notes: e.target.value})}
+                  placeholder="Any notes"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Plan Duration (months)</label>
-                <input required type="number" value={revenueForm.planMonths} onChange={e => setRevenueForm({...revenueForm, planMonths: e.target.value})} placeholder="e.g. 3" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Notes (optional)</label>
-                <input value={revenueForm.notes} onChange={e => setRevenueForm({...revenueForm, notes: e.target.value})} placeholder="Any notes" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div className="flex gap-2 pt-1">
-                <button type="button" onClick={() => setAddRevenueModal(false)} className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm">Cancel</button>
-                <button type="submit" className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium">Log Payment</button>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setAddRevenueModal(false)}
+                  className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-2xl text-sm font-medium">Cancel</button>
+                <button type="submit"
+                  className="flex-1 text-white py-3 rounded-2xl text-sm font-bold"
+                  style={{ background: 'linear-gradient(135deg, #1e40af, #7c3aed)' }}>
+                  Log Payment
+                </button>
               </div>
             </form>
           </div>

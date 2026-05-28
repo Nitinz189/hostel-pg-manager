@@ -13,6 +13,7 @@ export default function Signup() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const { signup } = useAuth()
 
   async function handleSignup(e) {
@@ -29,7 +30,13 @@ export default function Signup() {
       })
       setSubmitted(true)
     } catch (err) {
-      setError('Could not create account. Try a stronger password.')
+      if (err.code === 'auth/email-already-in-use') {
+        setError('This email is already registered. Please login instead.')
+      } else if (err.code === 'auth/weak-password') {
+        setError('Password too weak. Use at least 6 characters.')
+      } else {
+        setError(err.message || 'Could not create account. Please try again.')
+      }
     }
     setLoading(false)
   }
@@ -62,8 +69,8 @@ export default function Signup() {
       style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #1e3a5f 100%)' }}>
       <div className="w-full max-w-sm">
         <div className="text-center mb-6">
-          <img src="/joomla.png" alt="logo" className="w-16 h-16 object-contain mx-auto mb-3" />
-          <h1 className="text-2xl font-bold text-white">GYMmitra</h1>
+          <img src="/gym.png" alt="logo" className="w-16 h-16 object-contain mx-auto mb-3" />
+          <h1 className="text-2xl font-bold text-white">Smart Gym Management</h1>
           <p className="text-blue-300 text-sm mt-1">Request access for your gym</p>
         </div>
 
@@ -99,9 +106,18 @@ export default function Signup() {
             </div>
             <div>
               <label className="text-xs font-semibold text-blue-300 uppercase tracking-wide mb-1.5 block">Password</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="Min 6 characters" required
-                className="w-full bg-white bg-opacity-10 border border-white border-opacity-10 rounded-2xl px-4 py-3 text-sm text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="Min 6 characters" required
+                  className="w-full bg-white bg-opacity-10 border border-white border-opacity-10 rounded-2xl px-4 py-3 pr-12 text-sm text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-300 hover:text-white text-lg transition">
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
             </div>
             <button type="submit" disabled={loading}
               className="w-full py-3 rounded-2xl text-sm font-bold text-white transition"

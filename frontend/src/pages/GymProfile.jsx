@@ -28,9 +28,7 @@ export default function GymProfile() {
           r.gymmitraId === found?.gymmitraId || r.gymName === found?.propertyName
         )
         setRevenue(gymRevenue)
-      } catch (err) {
-        toast.error('Failed to load gym data')
-      }
+      } catch { toast.error('Failed to load') }
       setLoading(false)
     }
     fetchData()
@@ -39,78 +37,62 @@ export default function GymProfile() {
   async function editRevenue(revId) {
     try {
       await axios.put(`${API}/admin/revenue/${revId}`, {
-        amount: parseInt(editForm.amount),
-        notes: editForm.notes,
-        paidOn: editForm.paidOn
+        amount: parseInt(editForm.amount), notes: editForm.notes, paidOn: editForm.paidOn
       })
-      toast.success('Updated!')
-      setEditModal(null)
+      toast.success('Updated!'); setEditModal(null)
       const revenueRes = await axios.get(`${API}/admin/revenue`)
-      const gymRevenue = revenueRes.data.revenue.filter(r =>
+      setRevenue(revenueRes.data.revenue.filter(r =>
         r.gymmitraId === owner?.gymmitraId || r.gymName === owner?.propertyName
-      )
-      setRevenue(gymRevenue)
-    } catch (err) {
-      toast.error('Failed to update')
-    }
+      ))
+    } catch { toast.error('Failed') }
   }
 
   async function deleteRevenue(revId) {
     try {
       await axios.delete(`${API}/admin/revenue/${revId}`)
-      toast.success('Deleted!')
-      setRevenue(revenue.filter(r => r._id !== revId))
-    } catch (err) {
-      toast.error('Failed to delete')
-    }
+      toast.success('Deleted!'); setRevenue(revenue.filter(r => r._id !== revId))
+    } catch { toast.error('Failed') }
   }
 
   const totalPaid = revenue.reduce((sum, r) => sum + (r.amount || 0), 0)
-
   const daysLeft = owner?.planEndDate
     ? Math.ceil((new Date(owner.planEndDate) - new Date()) / (1000 * 60 * 60 * 24))
     : null
 
-  if (loading) {
-    return (
-      <div className="p-4 pb-32">
-        <div className="h-40 bg-gray-100 rounded-3xl animate-pulse mb-4"></div>
-        <div className="h-48 bg-gray-100 rounded-3xl animate-pulse mb-4"></div>
-        <div className="h-48 bg-gray-100 rounded-3xl animate-pulse"></div>
-      </div>
-    )
-  }
+  if (loading) return (
+    <div className="p-4 pb-32">
+      <div className="h-48 bg-gray-100 rounded-3xl animate-pulse mb-4"></div>
+      <div className="h-32 bg-gray-100 rounded-3xl animate-pulse mb-4"></div>
+      <div className="h-48 bg-gray-100 rounded-3xl animate-pulse"></div>
+    </div>
+  )
 
-  if (!owner) {
-    return (
-      <div className="p-6 text-center">
-        <p className="text-4xl mb-3">🏋️</p>
-        <p className="text-sm text-gray-500">Gym not found</p>
-        <button onClick={() => navigate('/admin')} className="mt-4 text-blue-600 text-sm">← Back to Admin</button>
-      </div>
-    )
-  }
+  if (!owner) return (
+    <div className="p-6 text-center">
+      <p className="text-4xl mb-3">🏋️</p>
+      <p className="text-sm text-gray-500">Gym not found</p>
+      <button onClick={() => navigate('/admin')} className="mt-4 text-blue-600 text-sm">← Back</button>
+    </div>
+  )
 
   return (
-    <div className="pb-32 md:pb-8">
+    <div className="pb-32 md:pb-8 max-w-2xl mx-auto">
 
-      {/* Back Button */}
       <div className="px-4 pt-4 mb-2">
         <button onClick={() => navigate('/admin')}
-          className="flex items-center gap-1.5 text-sm text-blue-600 font-medium">
+          className="text-sm text-blue-600 font-medium flex items-center gap-1">
           ← Back to Admin
         </button>
       </div>
 
-      {/* Hero Card */}
+      {/* Hero */}
       <div className="mx-4 mt-2 mb-4 rounded-3xl p-5 text-white relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 40%, #7c3aed 100%)' }}>
+        style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #1e3a5f 100%)' }}>
         <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-10"
-          style={{ background: 'radial-gradient(circle, #fff 0%, transparent 70%)', transform: 'translate(20%, -20%)' }}></div>
-
+          style={{ background: 'radial-gradient(circle, #fff, transparent)', transform: 'translate(20%, -20%)' }}></div>
         <div className="flex items-start justify-between mb-3">
           <div>
-            <p className="text-xs text-blue-200 mb-1 font-medium">Gym Profile</p>
+            <p className="text-xs text-blue-300 mb-1">Gym Profile</p>
             <h1 className="text-2xl font-bold">{owner.propertyName || owner.name}</h1>
             {owner.gymmitraId && (
               <span className="text-xs bg-white bg-opacity-20 px-2 py-0.5 rounded-full font-mono mt-1 inline-block">
@@ -118,7 +100,7 @@ export default function GymProfile() {
               </span>
             )}
           </div>
-          <span className={`text-xs px-3 py-1 rounded-full font-semibold mt-1 ${
+          <span className={`text-xs px-3 py-1 rounded-full font-semibold mt-1 flex-shrink-0 ${
             !owner.isApproved ? 'bg-yellow-400 text-yellow-900' :
             daysLeft !== null && daysLeft < 0 ? 'bg-red-400 text-white' :
             daysLeft !== null && daysLeft <= 7 ? 'bg-orange-400 text-white' :
@@ -130,75 +112,61 @@ export default function GymProfile() {
           </span>
         </div>
 
-        <div className="flex gap-4 flex-wrap mb-4">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-blue-300"></div>
-            <span className="text-xs text-blue-100">{owner.email}</span>
-          </div>
-          {owner.mobile && (
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-blue-300"></div>
-              <span className="text-xs text-blue-100">{owner.mobile}</span>
-            </div>
-          )}
+        <div className="flex gap-3 flex-wrap mb-4">
+          <p className="text-xs text-blue-200">{owner.email}</p>
+          {owner.mobile && <p className="text-xs text-blue-200">{owner.mobile}</p>}
         </div>
 
-        {/* Action Buttons */}
         <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={() => window.open(`tel:${owner.mobile}`, '_self')}
-            className="bg-white bg-opacity-10 border border-white border-opacity-20 text-white py-2.5 rounded-xl text-xs font-medium hover:bg-opacity-20 transition flex items-center justify-center gap-2">
+          <button onClick={() => window.open(`tel:${owner.mobile}`, '_self')}
+            className="bg-white bg-opacity-10 border border-white border-opacity-20 text-white py-2.5 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-opacity-20 transition">
             📞 Call
           </button>
-          <button
-            onClick={() => {
-              const message = `Hi ${owner.propertyName || owner.name},\n\nYour Smart Gym Management plan expires in ${daysLeft} days.\n\nPlease renew your plan to continue using the app.\n\nThank you!`
-              const phone = owner.mobile?.replace(/[^0-9]/g, '')
-              window.open(`https://wa.me/${phone?.startsWith('91') ? phone : `91${phone}`}?text=${encodeURIComponent(message)}`, '_blank')
-            }}
-            className="bg-white bg-opacity-10 border border-white border-opacity-20 text-white py-2.5 rounded-xl text-xs font-medium hover:bg-opacity-20 transition flex items-center justify-center gap-2">
+          <button onClick={() => {
+            const message = `Hi ${owner.propertyName || owner.name},\n\nYour Smart Gym Management plan expires in ${daysLeft} days.\n\nPlease renew to continue.\n\nThank you!`
+            const phone = owner.mobile?.replace(/[^0-9]/g, '')
+            window.open(`https://wa.me/${phone?.startsWith('91') ? phone : `91${phone}`}?text=${encodeURIComponent(message)}`, '_blank')
+          }}
+            className="bg-white bg-opacity-10 border border-white border-opacity-20 text-white py-2.5 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-opacity-20 transition">
             💬 WhatsApp
           </button>
         </div>
       </div>
 
-      {/* Stats Row */}
+      {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mx-4 mb-4">
         <div className="bg-white rounded-2xl p-3 text-center shadow-sm border border-gray-100">
-          <p className="text-2xl font-bold text-green-600">₹{totalPaid.toLocaleString()}</p>
-          <p className="text-xs text-gray-500 mt-0.5">Total</p>
-          <p className="text-xs text-gray-400">Paid to you</p>
+          <p className="text-xl font-bold text-green-600">₹{totalPaid.toLocaleString()}</p>
+          <p className="text-xs text-gray-400 mt-0.5">Total Paid</p>
         </div>
         <div className="bg-white rounded-2xl p-3 text-center shadow-sm border border-gray-100">
-          <p className="text-2xl font-bold text-blue-600">{revenue.length}</p>
-          <p className="text-xs text-gray-500 mt-0.5">Payments</p>
-          <p className="text-xs text-gray-400">Total entries</p>
+          <p className="text-xl font-bold text-blue-600">{revenue.length}</p>
+          <p className="text-xs text-gray-400 mt-0.5">Payments</p>
         </div>
         <div className="bg-white rounded-2xl p-3 text-center shadow-sm border border-gray-100">
-          <p className="text-2xl font-bold text-purple-600">{owner.memberCount || 0}</p>
-          <p className="text-xs text-gray-500 mt-0.5">Members</p>
-          <p className="text-xs text-gray-400">of {owner.memberLimit || 10}</p>
+          <p className="text-xl font-bold text-purple-600">{owner.memberCount || 0}</p>
+          <p className="text-xs text-gray-400 mt-0.5">Members</p>
         </div>
       </div>
 
-      {/* Gym Details Card */}
+      {/* Gym Details */}
       <div className="mx-4 mb-4 bg-white rounded-3xl p-4 shadow-sm border border-gray-100">
         <div className="flex items-center gap-2 mb-3">
           <div className="w-1 h-5 bg-blue-400 rounded-full"></div>
           <h2 className="text-sm font-bold text-gray-800">Gym Details</h2>
         </div>
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           {[
-            { label: 'Owner Name', value: owner.name },
+            { label: 'Owner', value: owner.name },
             { label: 'Email', value: owner.email },
             { label: 'Mobile', value: owner.mobile || '—' },
             { label: 'City', value: owner.address?.city || '—' },
             { label: 'State', value: owner.address?.state || '—' },
             { label: 'Plan', value: owner.plan ? owner.plan.charAt(0).toUpperCase() + owner.plan.slice(1) : 'Free' },
-            { label: 'Plan Expires', value: owner.planEndDate ? new Date(owner.planEndDate).toLocaleDateString('en-IN') : '—' },
-            { label: 'Member Limit', value: `${owner.memberCount || 0} / ${owner.memberLimit || 10}` },
+            { label: 'Expires', value: owner.planEndDate ? new Date(owner.planEndDate).toLocaleDateString('en-IN') : '—' },
+            { label: 'Members', value: `${owner.memberCount || 0} / ${owner.memberLimit || 10}` },
           ].map((item, i) => (
-            <div key={i} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
+            <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
               <p className="text-xs text-gray-400">{item.label}</p>
               <p className="text-xs font-semibold text-gray-700">{item.value}</p>
             </div>
@@ -206,42 +174,35 @@ export default function GymProfile() {
         </div>
       </div>
 
-      {/* Revenue Section */}
+      {/* Payment History */}
       <div className="mx-4 mb-4 bg-white rounded-3xl p-4 shadow-sm border border-gray-100">
         <div className="flex items-center gap-2 mb-3">
           <div className="w-1 h-5 bg-green-400 rounded-full"></div>
           <h2 className="text-sm font-bold text-gray-800">Payment History</h2>
         </div>
-
         {revenue.length === 0 ? (
           <div className="text-center py-8 text-gray-400">
             <p className="text-3xl mb-2">💰</p>
-            <p className="text-sm">No payments logged yet</p>
+            <p className="text-sm">No payments logged</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1">
             {revenue.map(r => (
-              <div key={r._id} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
+              <div key={r._id} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
                 <div>
-                  <p className="text-sm font-medium text-gray-700">₹{r.amount?.toLocaleString()}</p>
+                  <p className="text-sm font-semibold text-gray-800">₹{r.amount?.toLocaleString()}</p>
                   <p className="text-xs text-gray-400">
-                    {r.planMonths} months • {r.paidOn ? new Date(r.paidOn).toLocaleDateString('en-IN') : '—'}
+                    {r.planMonths}mo · {r.paidOn ? new Date(r.paidOn).toLocaleDateString('en-IN') : '—'}
                   </p>
                   {r.notes && <p className="text-xs text-gray-400">{r.notes}</p>}
                 </div>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => {
-                      setEditModal(r._id)
-                      setEditForm({
-                        amount: String(r.amount),
-                        notes: r.notes || '',
-                        paidOn: r.paidOn ? new Date(r.paidOn).toISOString().split('T')[0] : ''
-                      })
-                    }}
-                    className="text-blue-400 text-xs hover:text-blue-600">Edit</button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => {
+                    setEditModal(r._id)
+                    setEditForm({ amount: String(r.amount), notes: r.notes || '', paidOn: r.paidOn ? new Date(r.paidOn).toISOString().split('T')[0] : '' })
+                  }} className="text-xs text-blue-500 border border-blue-100 px-2 py-1 rounded-lg hover:bg-blue-50">Edit</button>
                   <button onClick={() => deleteRevenue(r._id)}
-                    className="text-red-400 text-xs hover:text-red-600">Del</button>
+                    className="w-7 h-7 border border-red-100 text-red-400 rounded-xl flex items-center justify-center text-xs hover:bg-red-50">✕</button>
                 </div>
               </div>
             ))}
@@ -249,41 +210,35 @@ export default function GymProfile() {
         )}
       </div>
 
-      {/* Edit Revenue Modal */}
+      {/* Edit Modal */}
       {editModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
-            <h2 className="text-base font-semibold text-gray-800 mb-4">Edit Payment</h2>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Amount (₹)</label>
-                <input type="number" value={editForm.amount}
-                  onChange={e => setEditForm({...editForm, amount: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Date</label>
-                <input type="date" value={editForm.paidOn}
-                  onChange={e => setEditForm({...editForm, paidOn: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Notes</label>
-                <input value={editForm.notes}
-                  onChange={e => setEditForm({...editForm, notes: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
+          <div className="bg-white rounded-t-3xl p-6 w-full max-w-lg">
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4"></div>
+            <h2 className="text-base font-bold text-gray-900 mb-4">Edit Payment</h2>
+            <div className="space-y-4">
+              {[
+                { label: 'Amount (₹)', key: 'amount', type: 'number' },
+                { label: 'Date', key: 'paidOn', type: 'date' },
+                { label: 'Notes', key: 'notes', type: 'text' },
+              ].map(f => (
+                <div key={f.key}>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">{f.label}</label>
+                  <input type={f.type} value={editForm[f.key]} onChange={e => setEditForm({...editForm, [f.key]: e.target.value})}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+              ))}
             </div>
-            <div className="flex gap-2 mt-4">
+            <div className="flex gap-3 mt-5">
               <button onClick={() => setEditModal(null)}
-                className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm">Cancel</button>
+                className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-2xl text-sm font-medium">Cancel</button>
               <button onClick={() => editRevenue(editModal)}
-                className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium">Save</button>
+                className="flex-1 text-white py-3 rounded-2xl text-sm font-bold"
+                style={{ background: 'linear-gradient(135deg, #1e40af, #7c3aed)' }}>Save</button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   )
 }

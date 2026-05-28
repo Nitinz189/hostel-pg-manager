@@ -1,6 +1,7 @@
 import express from 'express'
 import Member from '../models/Member.js'
 import Owner from '../models/Owner.js'
+import Payment from '../models/Payment.js'
 
 const router = express.Router()
 
@@ -51,6 +52,23 @@ router.post('/', async (req, res) => {
 
     const member = new Member(req.body)
     await member.save()
+
+    // Auto create payment record when member is added
+    if (req.body.membershipFee) {
+      const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' })
+      const payment = new Payment({
+        ownerId: req.body.ownerId,
+        tenantId: member._id.toString(),
+        tenantName: member.name,
+        roomNumber: member.registrationNumber,
+        amount: req.body.membershipFee,
+        month: currentMonth,
+        status: 'paid',
+        paidOn: new Date()
+      })
+      await payment.save()
+    }
+
     res.status(201).json(member)
   } catch (err) {
     res.status(500).json({ message: err.message })
