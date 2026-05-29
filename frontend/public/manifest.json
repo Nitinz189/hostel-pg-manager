@@ -9,13 +9,13 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/joomla.png",
+      "src": "/joomlao.png",
       "sizes": "192x192",
       "type": "image/png"
       
     },
     {
-      "src": "/joomla.png",
+      "src": "/joomlao.png",
       "sizes": "512x512",
       "type": "image/png"
       
