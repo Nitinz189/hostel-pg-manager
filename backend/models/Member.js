@@ -21,4 +21,10 @@ const memberSchema = new mongoose.Schema({
   notes: { type: String, default: '' },
 }, { timestamps: true })
 
+// Indexes for fast queries
+memberSchema.index({ ownerId: 1 })                        // fetch all members by owner
+memberSchema.index({ ownerId: 1, status: 1 })             // filter by status
+memberSchema.index({ ownerId: 1, expiryDate: 1 })         // expiry queries
+memberSchema.index({ ownerId: 1, membershipType: 1 })     // plan filter
+
 export default mongoose.model('Member', memberSchema)
